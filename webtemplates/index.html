@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript" src="../webcontents/jquery-3.4.1.js"></script>
+    <script type="text/javascript" src="../webcontents/agh.sprintf.js-master/agh.sprintf.js"></script>
+    <script type="text/javascript" src="../webcontents/common.js"></script>
+</head>
+<body>
+{{ name }}
+</body>
+<script type="text/javascript">
+
+    jQuery(document).ready(function (e) {
+
+        console.log(sprintf('Start'));
+
+        var server = location.hostname;
+        var port = 9999;
+        var url = 'ws://' + server + ':' + port.toString(); console.log(url);
+
+        var startup = function () {
+
+            ws = new WebSocket(url);
+            ws.onopen = function (e) {
+                console.log('websocket open');
+            };
+            ws.onmessage = function (msg) {
+                var news = jQuery.parseJSON(msg['data']);
+                dispatcher(news);
+            };
+            ws.onclose = function () {
+                startup();
+            };
+        };
+        startup();
+
+    });
+</script>
+</html>

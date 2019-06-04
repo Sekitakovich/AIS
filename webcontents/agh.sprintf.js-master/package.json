@@ -1,0 +1,23 @@
+{
+  "name": "agh.sprintf",
+  "version": "0.0.12",
+  "description": "C/POSIX conforming sprintf implementation in JavaScript",
+  "main": "agh.sprintf.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akinomyoga/agh.sprintf.js.git"
+  },
+  "keywords": [
+    "sprintf"
+  ],
+  "author": "Koichi Murase <myoga.murase@gmail.com> (https://github.com/akinomyoga)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/akinomyoga/agh.sprintf.js/issues"
+  },
+  "homepage": "https://github.com/akinomyoga/agh.sprintf.js",
+  "tonicExampleFilename": "example.js"
+}
