@@ -10,6 +10,17 @@ class Constants(object):
 
     intervalsecs = 60  # for timekeeper
 
+    class AIStype(IntEnum):
+
+        unknown = 0,
+
+        ClassA = 1,
+        ClassB_SOTDMA = 2,
+        ClassB_CSTDMA = 3,
+        BaseStation = 4,
+        AidsToNavigation = 5,
+        SearchAndRescue = 6,
+
     class MessageType(IntEnum):
 
         Type1 = 1

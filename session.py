@@ -9,6 +9,8 @@ import websocket
 import time
 from multiprocessing import Queue as MPQueue
 from queue import Queue
+from typing import List
+from typing import Dict
 
 from dispatcher import Dispatcher
 from common import Constants
@@ -23,25 +25,18 @@ class GPGGA(object):
         self.ss = ss
 
 
-class Record(object):
-
-    def __init__(self, *, record: dict):
-
-        self.at = dt.utcnow()
-        self.record = record
-
-
 class Session(Thread):
 
-    def __init__(self, *, entrance: Queue):
+    def __init__(self, *, entrance: Queue, name: str = 'Session'):
 
         super().__init__()
         self.daemon = True
+        self.name = name
 
         self.entrance = entrance
         self.counter = 0
         self.deltas = 0
-        self.fragment = {}
+        self.fragment = {}  # type: dict[int]
 
         while True:
             ws = websocket.create_connection(url='ws://0.0.0.0:%d/' % (Constants.wsport,))
@@ -60,12 +55,12 @@ class Session(Thread):
         self.archive.start()
 
         self.gpgga = GPGGA()
-        self.children = [self.dispatcher, self.archive]
+        # self.children = [self.dispatcher, self.archive]
 
-    def __del__(self):
-
-        for p in self.children:
-            p.join()
+    # def __del__(self):
+    #
+    #     for p in self.children:
+    #         p.join()
 
     # def _linux_set_time(self, timetuple: tuple):
     #     import ctypes.util
@@ -122,9 +117,9 @@ class Session(Thread):
             doit = False
 
             if ft > 1:
-                id = nmea[3]
+                id = int(nmea[3])
                 if id not in self.fragment:
-                    self.fragment[id] = []
+                    self.fragment[id] = []  # type: List[str]
                 self.fragment[id].append(payload)
 
                 if fn == ft:
@@ -144,6 +139,7 @@ class Session(Thread):
                     thisMMSI = result.member['header']['mmsi']
 
                     if thisMMSI != 0:
+                        thisType = result.member['header']['type']
 
                         info = {
                             'mode': 'AIS',
