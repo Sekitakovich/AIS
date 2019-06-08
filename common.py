@@ -5,10 +5,10 @@ import json
 
 class Constants(object):
 
-    wdport = 8080  # port number for httpd
-    wsport = 9999  # port number for websocket
+    wdport: int = 8080  # port number for httpd
+    wsport: int = 9999  # port number for websocket
 
-    intervalsecs = 60  # for timekeeper
+    intervalsecs: int = 60  # for timekeeper
 
     class AIStype(IntEnum):
 
@@ -53,4 +53,4 @@ class Constants(object):
 
     class Expire(object):
 
-        static = 60 * 60
+        static: int = 60 * 60

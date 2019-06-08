@@ -1,6 +1,7 @@
 import logging
 from queue import Queue
 from multiprocessing import Queue as MPQueue
+from typing import Dict, List
 
 from session import Session
 # from collector import Collector
@@ -24,7 +25,7 @@ if __name__ == '__main__':
     children = []
 
     mpqueue = MPQueue()
-    receiver = {
+    receiver: Dict[str, dict] = {
         'GPS': {
             'port': '/dev/ttyACM0',
             'baud': 9600,

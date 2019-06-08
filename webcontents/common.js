@@ -1,68 +1,32 @@
-// var GPGGA = function () {
-//     this.quality = 0;
-//     this.ss = 0;
-// };
-//
-// var infoGGA = new GPGGA();
-//
-//
-function shipStatics(mmsi, type, body) {
-    var text = sprintf("Ship %d Type: %d name = %s", mmsi, type, body['shipname']);
+function shipStatics(mmsi,mode,body) {
+    var text = sprintf("Static: Vessel[%d] mode = %s name = %s", mmsi, mode, body['name']);
     console.log(text);
 }
 
-function shipDynamics(mmsi, type, body) {
-    var text = sprintf("Ship %d Type: %d lat:lng = %f:%f", mmsi, type, body['maplat'], body['maplng']);
+function shipDynamics(mmsi,body) {
+    var text = sprintf("Dynamic: Vessel[%d] lat:lng = %f:%f", mmsi, body['lat'], body['lng']);
     console.log(text);
 }
 
 function dispatcher(news) {
-    var data = news['data'];
-    switch (news['mode']) {
-        case 'AIS':
-            var header = data['header'];
-            var body = data['body'];
-            switch (header['type']) {
-                // case 1:
-                // case 2:
-                // case 3:
-                // case 18:
-                //     shipDynamics(header['mmsi'], header['type'], body);
-                //     break;
-                case 5:
-                case 24:
-                    shipStatics(header['mmsi'], header['type'], body);
-                    break;
-                case 19:
-                    shipStatics(header['mmsi'], header['type'], body);
-                    // shipDynamics(header['mmsi'], header['type'], body);
-                    break;
-                case 6:
-                case 8:
-                    console.log(data);
-                    break;
-                default:
-                    break;
-            }
+    switch (news['type']) {
+        case 'Vs':
+            var mmsi = news['mmsi'];
+            var data = news['data'];
+            var mode = news['mode'];
+            shipStatics(mmsi,mode,data);
             break;
-        case 'GPRMC':
-            var lat = data['maplat'];
-            var lng = data['maplng'];
-            // console.log(lat, lng);
+        case 'Vd':
+            var mmsi = news['mmsi'];
+            var data = news['data'];
+            shipDynamics(mmsi,data);
             break;
-        case 'GPGGA':
-            // console.log(data);
-            var quality = data['quality'];
-            var ss = data['ss'];
-            // if (quality != infoGGA.quality || ss != infoGGA.ss) {
-            //     infoGGA.quality = quality;
-            //     infoGGA.ss = ss;
-            //     console.log(infoGGA);
-            // }
+        case 'GPS':
+            var data = news['data'];
             console.log(data);
             break;
         default:
-            console.log(data);
+            console.log(news);
             break;
     }
 }

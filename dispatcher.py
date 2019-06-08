@@ -1,4 +1,5 @@
 import logging
+from threading import Lock
 from typing import List
 from typing import Dict
 
@@ -33,8 +34,7 @@ class Dispatcher(object):
 
         self.logger = logging.getLogger('Log')
 
-        # self.vessel = Dict[int, Vessel]
-        self.vessel = {}  # type: Dict[int, Vessel]
+        self.vessel: Dict[int, Vessel] = {}
 
         self.header = Header()
         self.type1to3 = Type1to3()
@@ -69,9 +69,9 @@ class Dispatcher(object):
             
             rb.member['header'] = header.member
 
-            thisType = int(header.member['type'])
-            thisRepeat = int(header.member['repeat'])
-            thisMMSI = int(header.member['mmsi'])
+            thisType: int = int(header.member['type'])
+            thisRepeat: int = int(header.member['repeat'])
+            thisMMSI: int = int(header.member['mmsi'])
 
             if thisType in (Constants.MessageType.Type1, Constants.MessageType.Type2, Constants.MessageType.Type3):
                 body = self.type1to3.decode(payload=payload)

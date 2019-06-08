@@ -3,7 +3,7 @@ import math
 import logging
 from datetime import datetime as dt
 from datetime import timedelta as td
-from threading import Thread
+from threading import Thread, Lock
 import json
 import websocket
 import time
@@ -15,14 +15,121 @@ from typing import Dict
 from dispatcher import Dispatcher
 from common import Constants
 from archive import Archive
+from vessel import Vessel
 
 
-class GPGGA(object):
+class Cycle(Thread):
 
-    def __init__(self, *, quality: int = 0, ss: int = 0):
+    def __init__(self, *, vessel: Dict[int, Vessel], locker: Lock, ws: websocket.create_connection):
 
-        self.quality= quality
-        self.ss = ss
+        super().__init__()
+        self.daemon = True
+        self.logger = logging.getLogger('Log')
+
+        self.ws = ws
+        self.vessel = vessel
+        self.locker = locker
+
+        self.counter = 0
+        self.last = dt.utcnow()
+
+    def broadcast(self, *, message: str):
+        self.ws.send(message)
+
+    def run(self):
+
+        while True:
+            time.sleep(1)
+            just = dt.utcnow()
+            print('*** Cycle')
+
+            voidlist = []
+
+            with self.locker:
+                for mmsi, body in self.vessel.items():
+                    dynamic = body.dynamic
+                    static = body.static
+                    if static.status:
+                        if static.at > self.last:
+                            # print('static (%d) name = [%s] at %s' % (mmsi, static.name, static.at))
+                            info = {
+                                'mmsi': mmsi,
+                                'type': 'Vs',  # Vessel static
+                                'mode': '+',
+                                'data': static.listup(),
+                            }
+                            news = json.dumps(info)
+                            self.broadcast(message=news)
+                        else:
+                            ps = (just-static.at).total_seconds()
+                            if ps > 60 * 60 * 24:
+                                voidlist.append(mmsi)
+                            elif ps > 60 * 6:
+                                static.status = False
+
+                    if dynamic.status:
+                        if dynamic.at > self.last:  # updated
+                            # print('dynamic (%d) lat:lng = %f:%f at %s' % (mmsi, dynamic.lat, dynamic.lng, dynamic.at))
+                            info = {
+                                'mmsi': mmsi,
+                                'type': 'Vd',  # Vessel dynamic
+                                'mode': '+',
+                                'data': dynamic.listup(),
+                            }
+                            news = json.dumps(info)
+                            self.broadcast(message=news)
+                        else:
+                            ps = (just-dynamic.at).total_seconds()
+                            if ps > 60 * 6:
+                                dynamic.status = False
+                    else:
+                        pass
+
+                for mmsi in voidlist:
+                    print('void %d' % (mmsi,))
+                    del(self.vessel[mmsi])
+
+            self.last = just
+            self.counter += 1
+
+
+class Location(object):
+
+    def __init__(self):
+
+        self.at: dt = dt.utcnow()
+
+        self.status: str = 'N'
+        self.lat: float = 0.0
+        self.lng: float = 0.0
+        self.ns: str = 'N'
+        self.ew: str = 'E'
+        self.sog: float = 0.0
+        self.cog: float = 0.0
+
+    def update(self, *, lat: float, lng: float, ns: str, ew: str, sog: float, cog: float, status: str):
+
+        self.lat = lat
+        self.lng = lng
+        self.ns = ns
+        self.ew = ew
+        self.sog = sog
+        self.cog = cog
+        self.status = status
+
+        self.at = dt.utcnow()
+
+    def listup(self) -> dict:
+
+        return {
+            'status': self.status,
+            'lat': self.lat,
+            'lng': self.lng,
+            'ns': self.ns,
+            'ew': self.ew,
+            'sog': self.sog,
+            'cog': self.cog,
+        }
 
 
 class Session(Thread):
@@ -33,10 +140,12 @@ class Session(Thread):
         self.daemon = True
         self.name = name
 
+        self.location = Location()
+
         self.entrance = entrance
-        self.counter = 0
-        self.deltas = 0
-        self.fragment = {}  # type: dict[int]
+        self.counter: int = 0
+        self.deltas: int = 0
+        self.fragment: Dict[int, List[str]] = {}
 
         while True:
             ws = websocket.create_connection(url='ws://0.0.0.0:%d/' % (Constants.wsport,))
@@ -46,39 +155,18 @@ class Session(Thread):
             else:
                 time.sleep(1)
 
-        self.dispatcher = Dispatcher()
-
         self.logger = logging.getLogger('Log')
 
         self.aq = MPQueue()
         self.archive = Archive(qp=self.aq)
         self.archive.start()
 
-        self.gpgga = GPGGA()
         # self.children = [self.dispatcher, self.archive]
+        self.locker = Lock()
+        self.dispatcher = Dispatcher()
 
-    # def __del__(self):
-    #
-    #     for p in self.children:
-    #         p.join()
-
-    # def _linux_set_time(self, timetuple: tuple):
-    #     import ctypes.util
-    #     import time
-    #
-    #     CLOCK_REALTIME = 0
-    #
-    #     class timespec(ctypes.Structure):
-    #         _fields_ = [("tv_sec", ctypes.c_long),
-    #                     ("tv_nsec", ctypes.c_long)]
-    #
-    #     librt = ctypes.CDLL(ctypes.util.find_library("rt"))
-    #
-    #     ts = timespec()
-    #     ts.tv_sec = int(time.mktime(dt(*timetuple[:6]).timetuple()))
-    #     ts.tv_nsec = timetuple[6] * 1000000  # Millisecond to nanosecond
-    #
-    #     librt.clock_settime(CLOCK_REALTIME, ctypes.byref(ts))
+        self.cycle = Cycle(vessel=self.dispatcher.vessel, locker=self.locker, ws=self.ws)
+        self.cycle.start()
 
     def broadcast(self, *, message: str):
         self.ws.send(message)
@@ -100,15 +188,13 @@ class Session(Thread):
 
     def atVDM(self, *, nmea: list, counter: int):
 
-        # self.logger.debug(msg='Count %06d' % counter)
-
         try:
 
-            ft = int(nmea[1])  # fragment index
-            fn = int(nmea[2])  # fragment total
-            ch = nmea[4]  # channel
-            payload = nmea[5]
-            fillbits = int(nmea[6])
+            ft: int = int(nmea[1])  # fragment index
+            fn: int = int(nmea[2])  # fragment total
+            ch: str = nmea[4]  # channel
+            payload: str = nmea[5]
+            fillbits: int = int(nmea[6])
 
         except (ValueError, IndexError) as e:
             self.logger.debug(msg='%s at %s' % (e, nmea))
@@ -117,9 +203,9 @@ class Session(Thread):
             doit = False
 
             if ft > 1:
-                id = int(nmea[3])
+                id: int = int(nmea[3])
                 if id not in self.fragment:
-                    self.fragment[id] = []  # type: List[str]
+                    self.fragment[id] = []
                 self.fragment[id].append(payload)
 
                 if fn == ft:
@@ -133,52 +219,33 @@ class Session(Thread):
                 doit = True
 
             if doit:
-                result = self.dispatcher.parse(payload=payload, fillbits=fillbits)
-                if result.error == result.ErrorCode.noError:
+                with self.locker:
+                    result = self.dispatcher.parse(payload=payload, fillbits=fillbits)
 
-                    thisMMSI = result.member['header']['mmsi']
-
-                    if thisMMSI != 0:
-                        thisType = result.member['header']['type']
-
-                        info = {
-                            'mode': 'AIS',
-                            'data': result.member,
-                        }
-                        news = json.dumps(info)
-                        self.broadcast(message=news)
-
-                    else:
-                        pass
-                        # self.logger.debug(msg='found zero MMSI')
-                elif result.error == result.ErrorCode.AIS.type24notCompleted:
-                    pass
-                elif result.error == result.ErrorCode.AIS.unsupportedType:
-                    pass
-                else:
-                    self.logger.debug('[%s] at %s' % (result.error, nmea))
-                    pass
-
-    def atGGA(self, *, nmea: list, counter: int):
-
-        try:
-            quality = int(nmea[6])
-            ss = int(nmea[7])
-        except (IndexError, ValueError) as e:
-            self.logger.debug(msg=e)
-        else:
-            if quality != self.gpgga.quality or ss != self.gpgga.ss:
-                self.gpgga.quality = quality
-                self.gpgga.ss = ss
-                info = {
-                    'mode': 'GPGGA',
-                    'data': {
-                        'quality': quality,
-                        'ss': ss,
-                    }
-                }
-                news = json.dumps(info)
-                self.broadcast(message=news)
+                # if result.error == result.ErrorCode.noError:
+                #
+                #     thisMMSI = result.member['header']['mmsi']
+                #
+                #     if thisMMSI != 0:
+                #         thisType = result.member['header']['type']
+                #
+                #         info = {
+                #             'mode': 'AIS',
+                #             'data': result.member,
+                #         }
+                #         news = json.dumps(info)
+                #         self.broadcast(message=news)
+                #
+                #     else:
+                #         pass
+                #         # self.logger.debug(msg='found zero MMSI')
+                # elif result.error == result.ErrorCode.AIS.type24notCompleted:
+                #     pass
+                # elif result.error == result.ErrorCode.AIS.unsupportedType:
+                #     pass
+                # else:
+                #     self.logger.debug('[%s] at %s' % (result.error, nmea))
+                #     pass
 
     def atRMC(self, *, nmea: list, counter: int):
 
@@ -200,14 +267,7 @@ class Session(Thread):
         except (IndexError, ValueError) as e:
             self.logger.debug(msg=e)
         else:
-            info = {
-                'mode': 'GPRMC',
-                'data': {
-                    'status': status,
-                }
-            }
-
-            if status == 'A':
+            if status != 'N':
                 try:
 
                     hh = int(utc[0][0:2])
@@ -222,28 +282,29 @@ class Session(Thread):
                     sysnow = dt.utcnow()
                     self.deltas = (rmcnow - sysnow).total_seconds()
 
-                    # unix = sysnow + td(microseconds=diff)
-                    # print(unix)
-                    # if abs(diff) > 60:
-                    #     src = (yy, mm, dd, hh, mm, ss, ms)
-                    #     self._linux_set_time(timetuple=src)
-                    #     self.logger.debug(msg='system date was changed to %s' % str(src))
+                    self.location.update(
+                        # lat=float(lat),
+                        # lng=float(lng),
+                        ns=str(ns) if ns else '?',
+                        ew=str(ew) if ew else '?',
+                        sog=float(sog) if sog else 0,
+                        cog=float(cog) if cog else 0,
+                        lat=self.dm2deg(dm=float(lat)),
+                        lng=self.dm2deg(dm=float(lng)),
+                        status=status,
+                    )
 
-                    info['data'].update({
-                        'lat': float(lat),
-                        'lng': float(lng),
-                        'ns': str(ns) if ns else '?',
-                        'ew': str(ew) if ew else '?',
-                        'sog': float(sog) if sog else 0,
-                        'cog': float(cog) if cog else 0,
-                        'maplat': self.dm2deg(dm=float(lat)),
-                        'maplng': self.dm2deg(dm=float(lng)),
-                        'ts': rmcnow.timestamp(),
-                    })
                 except (ValueError,) as e:
                     self.logger.debug(msg=e)
                 else:
                     pass
+            else:
+                self.location.status = status  # mmm ...
+
+            info = {
+                'mode': 'GPS',
+                'data': self.location.listup(),
+            }
             news = json.dumps(info)
             self.broadcast(message=news)
 
@@ -253,13 +314,13 @@ class Session(Thread):
 
         while True:
 
-            sentence = self.entrance.get()
+            sentence: str = self.entrance.get()
 
             try:
-                nmea = sentence[:-3].split(',')  # cut off checksum
-                symbol = nmea[0]
+                nmea: list = sentence[:-3].split(',')  # cut off checksum
+                symbol: str = nmea[0]
                 # prefix = symbol[:-3]
-                suffix = symbol[-3:]
+                suffix: str = symbol[-3:]
             except (ValueError, IndexError) as e:
                 self.logger.debug(msg=e)
             else:
@@ -267,8 +328,6 @@ class Session(Thread):
                     self.atVDM(nmea=nmea, counter=self.counter)
                 elif suffix == 'RMC':
                     self.atRMC(nmea=nmea, counter=self.counter)
-                elif suffix == 'GGA':
-                    self.atGGA(nmea=nmea, counter=self.counter)
                 else:
                     pass
             finally:

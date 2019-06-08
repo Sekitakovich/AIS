@@ -8,42 +8,64 @@ class Statics(object):
 
     def __init__(self):
 
-        self.counter = 0
+        self.counter: int = 0
+        self.at: dt = dt.utcnow()  # 最終更新日時
+        self.status: bool = False
 
-        self.version = 0  # type: int
-        self.imo = 0  # type: int
-        self.callsign = ''  # type: str
-        self.name = ''  # type: str
-        self.type = 0  # shiptype
+        self.version: int = 0
+        self.imo: int = 0
+        self.callsign: str = ''
+        self.name: str = ''
+        self.type: int = 0
+
+    def listup(self) -> dict:
+
+        return {
+            'name': self.name,
+            'type': self.type,
+        }
 
 
 class Dynamics(object):
 
     def __init__(self):
 
-        self.counter = 0
+        self.counter: int = 0
+        self.at: dt = dt.utcnow()  # 最終更新日時
+        self.status: bool = False
 
-        self.lat = 0.0  # type: float
-        self.lng = 0.0  # type: float
-        self.sog = 0.0  # type: float
-        self.cog = 0.0  # type: float
+        self.lat: float = 0.0
+        self.lng: float = 0.0
+        self.sog: float = 0.0
+        self.cog: float = 0.0
+
+        self.distance: float = 0.0
+        self.angle: float = 0.0
+
+    def listup(self) -> dict:
+
+        return {
+            'lat': self.lat,
+            'lng': self.lng,
+            'sog': self.sog,
+            'cog': self.cog,
+            'distance': self.distance,
+            'angle': self.angle,
+        }
 
 
 class Vessel(object):
 
     def __init__(self):
 
-        self.at = dt.utcnow()  # 最終更新日時
-        self.aisType = Constants.AIStype.unknown
+        self.aisType: Constants.AIStype = Constants.AIStype.unknown
 
-        self.static = Statics()
-        self.dynamic = Dynamics()
-
-        self.payloads = {}
+        self.static: Statics = Statics()
+        self.dynamic: Dynamics = Dynamics()
 
     def updateDynamic(self, *, lat: float, lng: float, sog: float, cog: float):
 
-        self.at = dt.utcnow()  # 最終更新日時
+        self.dynamic.at = dt.utcnow()  # 最終更新日時
 
         self.dynamic.lat = lat
         self.dynamic.lng = lng
@@ -51,11 +73,12 @@ class Vessel(object):
         self.dynamic.cog = cog
 
         self.dynamic.counter += 1
+        self.dynamic.status = True
 
     def updateStatic(self, *, callsign: str = '', name: str, aistype: Constants.AIStype, imo: int = 0, version: int = 0, type: int = 0):
 
-        self.at = dt.utcnow()  # 最終更新日時
         self.aisType = aistype
+        self.static.at = dt.utcnow()  # 最終更新日時
 
         self.static.version = version
         self.static.imo = imo
@@ -64,3 +87,4 @@ class Vessel(object):
         self.static.type = type
 
         self.static.counter += 1
+        self.static.status = True
