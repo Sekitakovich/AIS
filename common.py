@@ -10,6 +10,14 @@ class Constants(object):
 
     intervalsecs: int = 60  # for timekeeper
 
+    class GPS(object):
+
+        class Mode(IntEnum):
+            N = 0,
+            A = 1,
+            D = 2,
+            E = 3
+
     class AIStype(IntEnum):
 
         unknown = 0,

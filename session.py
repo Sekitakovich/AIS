@@ -55,7 +55,7 @@ class Cycle(Thread):
                             info = {
                                 'mmsi': mmsi,
                                 'type': 'Vs',  # Vessel static
-                                'mode': '+',
+                                'mode': 'i',  # insert
                                 'data': static.listup(),
                             }
                             news = json.dumps(info)
