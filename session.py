@@ -46,10 +46,10 @@ class Cycle(Thread):
 
             self.logger.debug(msg='*** Cycle %d' % (self.counter,))
 
-            voidlist = []
+            voidlist: List[int] = []
+            newsdict: Dict[int, Enemy.dynamic] = {}
 
             with self.locker:
-                zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
                 for mmsi, body in self.enemy.items():
                     dynamic = body.dynamic
                     static = body.static
@@ -72,9 +72,10 @@ class Cycle(Thread):
                                 static.status = False
 
                     if dynamic.status:
-                        if dynamic.at:  # updated
-                            if dynamic.distance <= zone.radius:  # in zone
-                                print('dynamic (%d) in zone lat:lng = %f:%f at %s' % (mmsi, dynamic.lat, dynamic.lng, dynamic.at))
+                        if dynamic.at > self.last:  # updated
+                            if dynamic.signal != 'F':
+                                newsdict[mmsi] = dynamic
+                                # print('dynamic (%d) in %s distance = %f' % (mmsi, dynamic.signal, dynamic.distance))
                             # info = {
                             #     'mmsi': mmsi,
                             #     'type': 'Vd',  # Vessel dynamic
@@ -93,6 +94,9 @@ class Cycle(Thread):
                     print('void %d' % (mmsi,))
                     del(self.enemy[mmsi])
 
+                for k, v in newsdict.items():
+                    print('dynamic (%d) in %s distance = %f' % (k, v.signal, v.distance))
+
             self.last = just
             self.counter += 1
 
@@ -106,6 +110,7 @@ class Session(Thread):
         self.name = name
 
         self.cockpit = Cockpit()
+        self.cockpit.update(lat=self.deg2dm(deg=35.297318), lng=self.deg2dm(deg=139.757328), sog=22)
         self.enemy: Dict[int, Enemy] = {}
 
         self.entrance = entrance
@@ -265,8 +270,10 @@ class Session(Thread):
             else:
                 if suffix == 'VDM':
                     self.atVDM(nmea=nmea, counter=self.counter)
+                    pass
                 elif suffix == 'RMC':
-                    self.atRMC(nmea=nmea, counter=self.counter)
+                    # self.atRMC(nmea=nmea, counter=self.counter)
+                    pass
                 else:
                     pass
             finally:

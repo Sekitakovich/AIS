@@ -42,6 +42,7 @@ class Dynamics(object):
 
         self.distance: float = 0.0
         self.angle: float = 0.0
+        self.signal: str = '?'
 
     def listup(self) -> dict:
 
@@ -52,6 +53,7 @@ class Dynamics(object):
             'cog': self.cog,
             'distance': self.distance,
             'angle': self.angle,
+            'status': self.status,
         }
 
 
@@ -65,24 +67,6 @@ class Enemy(object):
 
         self.static: Statics = Statics()
         self.dynamic: Dynamics = Dynamics()
-
-        return
-
-    def updateDynamic(self, *, lat: float, lng: float, sog: float, cog: float):
-
-        self.dynamic.at = dt.utcnow()  # 最終更新日時
-
-        self.dynamic.lat = lat
-        self.dynamic.lng = lng
-        self.dynamic.sog = sog
-        self.dynamic.cog = cog
-
-        measure = self.cockpit.measure(lat=lat, lng=lng)
-        self.dynamic.distance = measure.distance
-        self.dynamic.angle = measure.angle
-
-        self.dynamic.counter += 1
-        self.dynamic.status = True
 
         return
 
@@ -101,3 +85,36 @@ class Enemy(object):
         self.static.status = True
 
         return
+
+    def updateDynamic(self, *, lat: float, lng: float, sog: float, cog: float):
+
+        self.dynamic.at = dt.utcnow()  # 最終更新日時
+
+        self.dynamic.lat = lat
+        self.dynamic.lng = lng
+        self.dynamic.sog = sog
+        self.dynamic.cog = cog
+
+        measure = self.cockpit.measure(lat=lat, lng=lng)
+        self.dynamic.distance = measure.distance
+        self.dynamic.angle = measure.angle
+
+        zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+        color: str = 'F'  # Far
+        if self.dynamic.distance <= zone.red:
+            color = 'R'
+            pass
+        elif self.dynamic.distance <= zone.radius:
+            color = 'Y'
+            pass
+        elif self.dynamic.distance <= zone.green:
+            color = 'G'
+            pass
+
+        self.dynamic.signal = color
+
+        self.dynamic.counter += 1
+        self.dynamic.status = True
+
+        return
+
