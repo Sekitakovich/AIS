@@ -1,37 +1,22 @@
 from datetime import datetime as dt
 from math import sin, cos, tan, atan2, acos, radians, degrees, modf
-from threading import Lock
+from typing import List
+
+from routine import Measurement
 
 
-class Target(object):  # notice! lat:lng is GoogleMaps format
+class Zone(object):
 
-    def __init__(self, *, lat: float = 0.0, lng: float = 0.0, sog: float = 0.0, cog: float = 0.0):
-        self.lat: float = lat
-        self.lng: float = lng
-        self.sog: float = sog
-        self.cog: float = cog
+    def __init__(self, *, radius: float, sog: int, zoom: int):
+        self.radius: float = radius  # radius of guard zone meter
+        self.sog: int = sog  # notice! knot
+        self.zoom: int = zoom  # OSM zoomlevel
 
-        return
-
-    def update(self, *, lat: float = 0.0, lng: float = 0.0, sog: float = 0.0, cog: float = 0.0):
-        self.lat = lat
-        self.lng = lng
-        self.sog = sog
-        self.cog = cog
-
-        return
+        self.red = radius / 2
+        self.green = radius * 2
 
 
-class Measurement(object):  # Measurement result
-
-    def __init__(self):
-        self.angle: float = 0.0
-        self.distance: float = 0.0
-
-        return
-
-
-class Cockpit(object):  # depend on GPRMC
+class Cockpit(object):  # this vessel's cockpit depend on GPRMC
 
     def __init__(self):
         self.utc: dt = dt.utcnow()
@@ -53,30 +38,56 @@ class Cockpit(object):  # depend on GPRMC
         self.relation = Measurement()
 
         self.radius: float = 6378.137 * 1000  # 地球の半径(m)
-        self.lock = Lock()
+
+        self.zoneMaster: List[Zone] = [
+            Zone(radius=0.125, zoom=16, sog=5),
+            Zone(radius=0.250, zoom=15, sog=10),
+            Zone(radius=0.5, zoom=14, sog=15),
+            Zone(radius=1, zoom=13, sog=20),
+            Zone(radius=2, zoom=12, sog=25),
+            Zone(radius=4, zoom=11, sog=40),
+            # Zone(radius=8, zoom=10, sog=10000),
+        ]
+        self.currentZone: int = 0
 
         return
 
     def update(self, *, lat: float = 0.0, lng: float = 0.0, status: bool = False, ns: str = 'N', ew: str = 'E',
                cog: float = 0.0, sog: float = 0.0):
 
-        with self.lock:
-            self.status = status
-            self.lat = lat
-            self.lng = lng
-            self.ns = ns
-            self.ew = ew
-            self.cog = cog
-            self.sog = sog
+        self.status = status
+        self.lat = lat
+        self.lng = lng
+        self.ns = ns
+        self.ew = ew
+        self.cog = cog
+        self.sog = sog
 
-            self.mapLat = self.dm2deg(dm=lat)
-            self.mapLng = self.dm2deg(dm=lng)
-            self.radLat = radians(self.mapLat)
-            self.radLng = radians(self.mapLng)
+        self.mapLat = self.dm2deg(dm=lat)
+        self.mapLng = self.dm2deg(dm=lng)
+        self.radLat = radians(self.mapLat)
+        self.radLng = radians(self.mapLng)
 
-            self.at = dt.utcnow()
+        for index, z in enumerate(self.zoneMaster):
+            if sog <= z.sog:
+                self.currentZone = index
+                break
+
+        self.at = dt.utcnow()
 
         return
+
+    def listup(self) -> dict:
+
+        return {
+            'status': self.status,
+            'lat': self.mapLat,
+            'lng': self.mapLng,
+            'ns': self.ns,
+            'ew': self.ew,
+            'sog': self.sog,
+            'cog': self.cog,
+        }
 
     def dm2deg(self, *, dm: float) -> float:  # GPRMC -> GoogleMaps
 
@@ -91,16 +102,17 @@ class Cockpit(object):  # depend on GPRMC
     def mile2meter(self, *, mile: float) -> float:
         return mile * 1852
 
-    def measure(self, *, enemy: Target) -> Measurement:
-        x = radians(enemy.lng)
-        y = radians(enemy.lat)
+    def measure(self, *, lat: float, lng: float) -> Measurement:  # format is GoogleMaps
+        x = radians(lng)
+        y = radians(lat)
 
         delta = x - self.radLng
 
         self.relation.angle = degrees(
             atan2(sin(delta), (cos(self.radLat) * tan(y) - sin(self.radLat) * cos(delta))))  # % 360
 
-        self.relation.distance = self.radius * acos(sin(self.radLat) * sin(y) + cos(self.radLat) * cos(y) * cos(delta))
+        distance = self.radius * acos(sin(self.radLat) * sin(y) + cos(self.radLat) * cos(y) * cos(delta))
+        self.relation.distance = self.meter2mile(meter=distance)
 
         return self.relation
 
@@ -132,8 +144,7 @@ if __name__ == '__main__':
     }
 
     for end, v in e.items():
-        enemy = Target(lat=v['lat'], lng=v['lng'])
-        result = cockpit.measure(enemy=enemy)
+        result = cockpit.measure(lat=v['lat'], lng=v['lng'])
         mile = cockpit.meter2mile(meter=result.distance)
         print(
             'from [%s] to [%s] : 距離 = %.2f (%.2f) 方位角 = %.2f' % (top['name'], end, result.distance, mile, result.angle))

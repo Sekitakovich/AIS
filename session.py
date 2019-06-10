@@ -15,19 +15,21 @@ from typing import Dict
 from dispatcher import Dispatcher
 from common import Constants
 from archive import Archive
-from vessel import Vessel
+from enemy import Enemy
+from cockpit import Cockpit
 
 
 class Cycle(Thread):
 
-    def __init__(self, *, vessel: Dict[int, Vessel], locker: Lock, ws: websocket.create_connection):
+    def __init__(self, *, cockpit: Cockpit, enemy: Dict[int, Enemy], locker: Lock, ws: websocket.create_connection):
 
         super().__init__()
         self.daemon = True
         self.logger = logging.getLogger('Log')
 
+        self.cockpit = cockpit
         self.ws = ws
-        self.vessel = vessel
+        self.enemy = enemy
         self.locker = locker
 
         self.counter = 0
@@ -41,12 +43,14 @@ class Cycle(Thread):
         while True:
             time.sleep(1)
             just = dt.utcnow()
-            print('*** Cycle')
+
+            self.logger.debug(msg='*** Cycle %d' % (self.counter,))
 
             voidlist = []
 
             with self.locker:
-                for mmsi, body in self.vessel.items():
+                zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+                for mmsi, body in self.enemy.items():
                     dynamic = body.dynamic
                     static = body.static
                     if static.status:
@@ -68,16 +72,16 @@ class Cycle(Thread):
                                 static.status = False
 
                     if dynamic.status:
-                        if dynamic.at > self.last:  # updated
-                            # print('dynamic (%d) lat:lng = %f:%f at %s' % (mmsi, dynamic.lat, dynamic.lng, dynamic.at))
-                            info = {
-                                'mmsi': mmsi,
-                                'type': 'Vd',  # Vessel dynamic
-                                'mode': '+',
-                                'data': dynamic.listup(),
-                            }
-                            news = json.dumps(info)
-                            self.broadcast(message=news)
+                        if dynamic.at:  # updated
+                            if dynamic.distance <= zone.radius:  # in zone
+                                print('dynamic (%d) in zone lat:lng = %f:%f at %s' % (mmsi, dynamic.lat, dynamic.lng, dynamic.at))
+                            # info = {
+                            #     'mmsi': mmsi,
+                            #     'type': 'Vd',  # Vessel dynamic
+                            #     'data': dynamic.listup(),
+                            # }
+                            # news = json.dumps(info)
+                            # self.broadcast(message=news)
                         else:
                             ps = (just-dynamic.at).total_seconds()
                             if ps > 60 * 6:
@@ -87,49 +91,10 @@ class Cycle(Thread):
 
                 for mmsi in voidlist:
                     print('void %d' % (mmsi,))
-                    del(self.vessel[mmsi])
+                    del(self.enemy[mmsi])
 
             self.last = just
             self.counter += 1
-
-
-class Location(object):
-
-    def __init__(self):
-
-        self.at: dt = dt.utcnow()
-
-        self.status: str = 'N'
-        self.lat: float = 0.0
-        self.lng: float = 0.0
-        self.ns: str = 'N'
-        self.ew: str = 'E'
-        self.sog: float = 0.0
-        self.cog: float = 0.0
-
-    def update(self, *, lat: float, lng: float, ns: str, ew: str, sog: float, cog: float, status: str):
-
-        self.lat = lat
-        self.lng = lng
-        self.ns = ns
-        self.ew = ew
-        self.sog = sog
-        self.cog = cog
-        self.status = status
-
-        self.at = dt.utcnow()
-
-    def listup(self) -> dict:
-
-        return {
-            'status': self.status,
-            'lat': self.lat,
-            'lng': self.lng,
-            'ns': self.ns,
-            'ew': self.ew,
-            'sog': self.sog,
-            'cog': self.cog,
-        }
 
 
 class Session(Thread):
@@ -140,7 +105,8 @@ class Session(Thread):
         self.daemon = True
         self.name = name
 
-        self.location = Location()
+        self.cockpit = Cockpit()
+        self.enemy: Dict[int, Enemy] = {}
 
         self.entrance = entrance
         self.counter: int = 0
@@ -162,10 +128,10 @@ class Session(Thread):
         self.archive.start()
 
         # self.children = [self.dispatcher, self.archive]
-        self.locker = Lock()
-        self.dispatcher = Dispatcher()
+        self.dispatcher = Dispatcher(enemy=self.enemy, cockpit=self.cockpit)
 
-        self.cycle = Cycle(vessel=self.dispatcher.vessel, locker=self.locker, ws=self.ws)
+        self.locker = Lock()
+        self.cycle = Cycle(cockpit=self.cockpit, enemy=self.enemy, locker=self.locker, ws=self.ws)
         self.cycle.start()
 
     def broadcast(self, *, message: str):
@@ -222,31 +188,6 @@ class Session(Thread):
                 with self.locker:
                     result = self.dispatcher.parse(payload=payload, fillbits=fillbits)
 
-                # if result.error == result.ErrorCode.noError:
-                #
-                #     thisMMSI = result.member['header']['mmsi']
-                #
-                #     if thisMMSI != 0:
-                #         thisType = result.member['header']['type']
-                #
-                #         info = {
-                #             'mode': 'AIS',
-                #             'data': result.member,
-                #         }
-                #         news = json.dumps(info)
-                #         self.broadcast(message=news)
-                #
-                #     else:
-                #         pass
-                #         # self.logger.debug(msg='found zero MMSI')
-                # elif result.error == result.ErrorCode.AIS.type24notCompleted:
-                #     pass
-                # elif result.error == result.ErrorCode.AIS.unsupportedType:
-                #     pass
-                # else:
-                #     self.logger.debug('[%s] at %s' % (result.error, nmea))
-                #     pass
-
     def atRMC(self, *, nmea: list, counter: int):
 
         try:
@@ -282,16 +223,14 @@ class Session(Thread):
                     sysnow = dt.utcnow()
                     self.deltas = (rmcnow - sysnow).total_seconds()
 
-                    self.location.update(
-                        # lat=float(lat),
-                        # lng=float(lng),
+                    self.cockpit.update(
+                        lat=float(lat),
+                        lng=float(lng),
                         ns=str(ns) if ns else '?',
                         ew=str(ew) if ew else '?',
                         sog=float(sog) if sog else 0,
                         cog=float(cog) if cog else 0,
-                        lat=self.dm2deg(dm=float(lat)),
-                        lng=self.dm2deg(dm=float(lng)),
-                        status=status,
+                        status=status == 'A',
                     )
 
                 except (ValueError,) as e:
@@ -299,11 +238,11 @@ class Session(Thread):
                 else:
                     pass
             else:
-                self.location.status = status  # mmm ...
+                pass
 
             info = {
                 'mode': 'GPS',
-                'data': self.location.listup(),
+                'data': self.cockpit.listup(),
             }
             news = json.dumps(info)
             self.broadcast(message=news)

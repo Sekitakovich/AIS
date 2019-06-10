@@ -2,6 +2,7 @@ import logging
 from threading import Lock
 from typing import List
 from typing import Dict
+from threading import Lock
 
 from resultbox import ResultBox
 from Payloads.header import Structure as Header
@@ -25,16 +26,19 @@ from Payloads.type24B import Structure as Type24B
 from Payloads.type27 import Structure as Type27
 
 from common import Constants
-from vessel import Vessel
+from cockpit import Cockpit
+from enemy import Enemy
 
 
 class Dispatcher(object):
 
-    def __init__(self):
+    def __init__(self, *, cockpit: Cockpit, enemy: Dict[int, Enemy]):
 
         self.logger = logging.getLogger('Log')
 
-        self.vessel: Dict[int, Vessel] = {}
+        self.cockpit = cockpit
+        # self.enemy: Dict[int, Enemy] = {}
+        self.enemy = enemy
 
         self.header = Header()
         self.type1to3 = Type1to3()
@@ -56,7 +60,9 @@ class Dispatcher(object):
         self.type24B = Type24B()
         self.type27 = Type27()
 
-        self.save24 = {}
+        self.save24: Dict[str, dict] = {}
+
+        return
 
     def parse(self, *, payload: str, fillbits: int = 0) -> ResultBox:
 
@@ -77,9 +83,9 @@ class Dispatcher(object):
                 body = self.type1to3.decode(payload=payload)
                 if body.error == body.ErrorCode.noError:
                     src = body.member
-                    if thisMMSI not in self.vessel:
-                        self.vessel[thisMMSI] = Vessel()
-                    self.vessel[thisMMSI].updateDynamic(
+                    if thisMMSI not in self.enemy:
+                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
+                    self.enemy[thisMMSI].updateDynamic(
                         lat=src['maplat'],
                         lng=src['maplng'],
                         sog=src['speed'],
@@ -95,9 +101,9 @@ class Dispatcher(object):
                 body = self.type5.decode(payload=payload)
                 if body.error == body.ErrorCode.noError:
                     src = body.member
-                    if thisMMSI not in self.vessel:
-                        self.vessel[thisMMSI] = Vessel()
-                    self.vessel[thisMMSI].updateStatic(
+                    if thisMMSI not in self.enemy:
+                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
+                    self.enemy[thisMMSI].updateStatic(
                         version=src['ais_version'],
                         imo=src['imo'],
                         name=src['shipname'],
@@ -143,9 +149,9 @@ class Dispatcher(object):
                 body = self.type18.decode(payload=payload)
                 if body.error == body.ErrorCode.noError:
                     src = body.member
-                    if thisMMSI not in self.vessel:
-                        self.vessel[thisMMSI] = Vessel()
-                    self.vessel[thisMMSI].updateDynamic(
+                    if thisMMSI not in self.enemy:
+                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
+                    self.enemy[thisMMSI].updateDynamic(
                         lat=src['maplat'],
                         lng=src['maplng'],
                         sog=src['speed'],
@@ -156,14 +162,14 @@ class Dispatcher(object):
                 body = self.type19.decode(payload=payload)
                 if body.error == body.ErrorCode.noError:
                     src = body.member
-                    if thisMMSI not in self.vessel:
-                        self.vessel[thisMMSI] = Vessel()
-                    self.vessel[thisMMSI].updateStatic(
+                    if thisMMSI not in self.enemy:
+                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
+                    self.enemy[thisMMSI].updateStatic(
                         name=src['shipname'],
                         type=src['shiptype'],
                         aistype=Constants.AIStype.ClassB_SOTDMA,
                     )
-                    self.vessel[thisMMSI].updateDynamic(
+                    self.enemy[thisMMSI].updateDynamic(
                         lat=src['maplat'],
                         lng=src['maplng'],
                         sog=src['speed'],
@@ -199,9 +205,9 @@ class Dispatcher(object):
                     result.member.update(target['B'].member)
                     body = result
                     src = body.member
-                    if thisMMSI not in self.vessel:
-                        self.vessel[thisMMSI] = Vessel()
-                    self.vessel[thisMMSI].updateStatic(
+                    if thisMMSI not in self.enemy:
+                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
+                    self.enemy[thisMMSI].updateStatic(
                         name=src['shipname'],
                         type=src['shiptype'],
                         callsign=src['callsign'],

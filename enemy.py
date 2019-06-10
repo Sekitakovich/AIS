@@ -2,6 +2,7 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 
 from common import Constants
+from cockpit import Cockpit
 
 
 class Statics(object):
@@ -54,14 +55,18 @@ class Dynamics(object):
         }
 
 
-class Vessel(object):
+class Enemy(object):
 
-    def __init__(self):
+    def __init__(self, *, cockpit: Cockpit):
 
         self.aisType: Constants.AIStype = Constants.AIStype.unknown
 
+        self.cockpit = cockpit
+
         self.static: Statics = Statics()
         self.dynamic: Dynamics = Dynamics()
+
+        return
 
     def updateDynamic(self, *, lat: float, lng: float, sog: float, cog: float):
 
@@ -72,8 +77,14 @@ class Vessel(object):
         self.dynamic.sog = sog
         self.dynamic.cog = cog
 
+        measure = self.cockpit.measure(lat=lat, lng=lng)
+        self.dynamic.distance = measure.distance
+        self.dynamic.angle = measure.angle
+
         self.dynamic.counter += 1
         self.dynamic.status = True
+
+        return
 
     def updateStatic(self, *, callsign: str = '', name: str, aistype: Constants.AIStype, imo: int = 0, version: int = 0, type: int = 0):
 
@@ -88,3 +99,5 @@ class Vessel(object):
 
         self.static.counter += 1
         self.static.status = True
+
+        return
