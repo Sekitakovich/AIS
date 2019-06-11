@@ -4,12 +4,11 @@ from multiprocessing import Queue as MPQueue
 from typing import Dict, List
 
 from session import Session
-# from collector import Collector
 from receiver import Receiver
 from webserver import Server as WebServer
 from wsserver import Server as WSServer
 from common import Constants
-from gprmc import Receiver as FakeRMC
+from udplistner import Receiver as UDPListner
 
 
 if __name__ == '__main__':
@@ -23,7 +22,8 @@ if __name__ == '__main__':
     logger.addHandler(streamhandler)
     logger.debug('Session start')
 
-    children = []
+    wd = WebServer(name='Flask')
+    wd.start()
 
     mpqueue = MPQueue()
     receiver: Dict[str, dict] = {
@@ -36,32 +36,23 @@ if __name__ == '__main__':
             'baud': 38400,
         },
     }
-    process = {}
 
     ws = WSServer(port=Constants.wsport)
     ws.start()
-    children.append(ws)
-
-    wd = WebServer(name='Flask', osm='webcontents/OSM')
-    wd.start()
-    children.append(wd)
 
     for k, v in receiver.items():
         dst = Receiver(port=v['port'], baud=v['baud'], mailpost=mpqueue, name=k)
         dst.start()
-        process[k] = dst
-        children.append(dst)
 
     threadqueue = Queue()
     session = Session(entrance=threadqueue)
     session.start()
-    children.append(session)
 
     # collector = Collector(mailpost=mpqueue)
     # collector.start()
 
-    fake = FakeRMC(mailpost=mpqueue)
-    fake.start()
+    udp = UDPListner(mailpost=mpqueue)
+    udp.start()
 
     while True:
         try:
@@ -70,7 +61,4 @@ if __name__ == '__main__':
         except KeyboardInterrupt as e:
             logger.debug(msg=e)
             break
-
-    for p in children:
-        p.join()
 

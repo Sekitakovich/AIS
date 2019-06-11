@@ -45,6 +45,7 @@ class Cycle(Thread):
             just = dt.utcnow()
 
             self.logger.debug(msg='*** Cycle %d' % (self.counter,))
+            zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
 
             voidlist: List[int] = []
 
@@ -72,10 +73,21 @@ class Cycle(Thread):
 
                     if dynamic.status:
                         if dynamic.at > self.last:  # updated
-                            if dynamic.signal != 'F':
+                            flag: str = 'F'  # Far
+                            if dynamic.distance <= zone.red:
+                                flag = 'X'
+                                pass
+                            elif dynamic.distance <= zone.radius:
+                                flag = 'R'
+                                pass
+                            elif dynamic.distance <= zone.green:
+                                flag = 'G'
+                                pass
+                            if flag != 'F':
                                 info = {
                                     'type': 'AISD',
                                     'mmsi': mmsi,
+                                    'flag': flag,
                                     'data': dynamic.listup(),
                                 }
                                 news = json.dumps(info)

@@ -1,6 +1,6 @@
 import math
 import time
-import tkinter as tk
+import tkinter
 from datetime import datetime as dt
 from threading import Thread
 import socket
@@ -109,16 +109,42 @@ class Controller(object):
 
         self.bridge = bridge
 
-        root = tk.Tk()
+        root = tkinter.Tk()
+        root.title('Voyage - GPRMC')
 
-        frame = tk.Frame(root, width=320, height=100)
-
+        frame = tkinter.Frame(root, width=320, height=240)
         frame.bind('<Any-KeyPress>', self.press)
 
         frame.focus_set()
         frame.pack()
 
+        sogUP = tkinter.Button(text='speed UP', width=16, command=self.speedUP)
+        sogDN = tkinter.Button(text='speed DOWN', width=16, command=self.speedDown)
+        cogR = tkinter.Button(text='course >', width=16, command=self.rudderR)
+        cogL = tkinter.Button(text='course <', width=16, command=self.rudderL)
+
+        sogUP.place(x=4, y=32)
+        sogDN.place(x=4, y=64)
+        cogR.place(x=4, y=96)
+        cogL.place(x=4, y=128)
+
         root.mainloop()
+
+    def speedUP(self):
+        self.bridge.throttle(up=True)
+        return
+
+    def speedDown(self):
+        self.bridge.throttle(up=False)
+        return
+
+    def rudderR(self):
+        self.bridge.rudder(starboard=True)
+        return
+
+    def rudderL(self):
+        self.bridge.rudder(starboard=False)
+        return
 
     def press(self, event):
 
@@ -148,8 +174,11 @@ if __name__ == '__main__':
     # lat = 35.285172  # 三笠
     # lng = 139.674647
 
-    lat = 35.220655  # 久里浜
-    lng = 139.714575
+    # lat = 35.220655  # 久里浜
+    # lng = 139.714575
+
+    lat = 35.153453  # 浦賀沖
+    lng = 139.778591
 
     group = '239.192.0.1'
     port = 60001

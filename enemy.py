@@ -42,7 +42,7 @@ class Dynamics(object):
 
         self.distance: float = 0.0
         self.angle: float = 0.0
-        self.signal: str = '?'
+        # self.flag: str = '?'
 
     def listup(self) -> dict:
 
@@ -54,7 +54,7 @@ class Dynamics(object):
             'distance': self.distance,
             'angle': self.angle,
             'status': self.status,
-            'signal': self.signal,
+            # 'signal': self.flag,
         }
 
 
@@ -100,19 +100,19 @@ class Enemy(object):
         self.dynamic.distance = measure.distance
         self.dynamic.angle = measure.angle
 
-        zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
-        color: str = 'F'  # Far
-        if self.dynamic.distance <= zone.red:
-            color = 'R'
-            pass
-        elif self.dynamic.distance <= zone.radius:
-            color = 'Y'
-            pass
-        elif self.dynamic.distance <= zone.green:
-            color = 'G'
-            pass
-
-        self.dynamic.signal = color
+        # zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+        # color: str = 'F'  # Far
+        # if self.dynamic.distance <= zone.red:
+        #     color = 'R'
+        #     pass
+        # elif self.dynamic.distance <= zone.radius:
+        #     color = 'Y'
+        #     pass
+        # elif self.dynamic.distance <= zone.green:
+        #     color = 'G'
+        #     pass
+        #
+        # self.dynamic.flag = color
 
         self.dynamic.counter += 1
         self.dynamic.status = True

@@ -1,0 +1,103 @@
+@keyframes fadeIn {
+    0% {
+        opacity: 0
+    }
+    100% {
+        opacity: 1
+    }
+}
+
+.leaflet-marker-icon {
+    animation: fadeIn 1s ease 0s 0.5 normal;
+}
+
+.leaflet-popup-content-wrapper {
+    background-color: gray;
+    opacity: 0.75;
+}
+
+div#baseStage {
+    width: 800px;
+    height: 480px;
+    display: flex;
+    /*padding: 0px;*/
+    background-color: white;
+    border: 1px solid black;
+}
+
+div#mapStage {
+    /*padding: 4px;*/
+    width: 600px;
+    height: 480px;
+    background-color: white;
+}
+
+div#panelStage {
+    /*padding: 4px;*/
+    width: 200px;
+    height: 480px;
+    /*border: 1px solid black;*/
+    color: white;
+    background-color: grey;
+}
+
+table#controlPanel {
+    width: 100%;
+}
+
+table#controlPanel td {
+    text-align: center;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+table#controlPanel th {
+    border: 1px solid white;
+    color: white;
+    background-color: #34aadc;
+    text-align: center;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+@keyframes blink {
+    75% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes blinkTomvy {
+    95% {
+        opacity: 0.5;
+    }
+}
+
+.blinking {
+    animation: blink 1s step-end infinite;
+}
+
+.tomvy {
+    animation: blinkTomvy 1s step-end infinite;
+}
+
+.rangeText {
+    width: 48px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.panelButton {
+    width: 72px;
+}
+
+.panelText {
+    width: 64px;
+    text-align: center;
+    /*font-weight: bold;*/
+}
+
+.latlng {
+    padding: 2px;
+    width: 64px;
+    text-align: center;
+}

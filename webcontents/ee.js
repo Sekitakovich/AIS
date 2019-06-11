@@ -794,8 +794,8 @@ class Stage {
         }
     }
 
-    onAISD(mmsi, data) {
-        console.log('D', mmsi, data);
+    onAISD(mmsi, flag, data) {
+        console.log('D', mmsi, flag, data);
         const item = data;
         if ((mmsi in this.eSymbol) == false) {
             const code3 = parseInt(mmsi.toString().substr(0, 3));
@@ -823,7 +823,8 @@ class Stage {
             this.onGPS(data);
         } else if (type == 'AISD') {
             const mmsi = message['mmsi'];
-            this.onAISD(mmsi, data);
+            const flag = message['flag'];
+            this.onAISD(mmsi, flag, data);
         } else if (type == 'AISS') {
             const mmsi = message['mmsi'];
             const mode = message['mode'];

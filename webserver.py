@@ -1,6 +1,6 @@
 import os
 import logging
-from multiprocessing import Process
+from threading import Thread
 from flask import Flask
 from flask import render_template
 
@@ -20,15 +20,14 @@ def index():
     return render_template('index.html', name=name)
 
 
-class Server(Process):
+class Server(Thread):
 
-    def __init__(self, *, name: str, osm: str):
+    def __init__(self, *, name: str = 'Flask'):
 
         super().__init__()
 
         self.daemon = True
         self.name = name
-        self.osm = osm
 
         self.logger = logging.getLogger('Log')
 
