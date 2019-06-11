@@ -9,6 +9,7 @@ from receiver import Receiver
 from webserver import Server as WebServer
 from wsserver import Server as WSServer
 from common import Constants
+from gprmc import Receiver as FakeRMC
 
 
 if __name__ == '__main__':
@@ -26,10 +27,10 @@ if __name__ == '__main__':
 
     mpqueue = MPQueue()
     receiver: Dict[str, dict] = {
-        'GPS': {
-            'port': '/dev/ttyACM0',
-            'baud': 9600,
-        },
+        # 'GPS': {
+        #     'port': '/dev/ttyACM0',
+        #     'baud': 9600,
+        # },
         'AIS': {
             'port': '/dev/ttyUSB0',
             'baud': 38400,
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     ws.start()
     children.append(ws)
 
-    wd = WebServer(name='Flask')
+    wd = WebServer(name='Flask', osm='webcontents/OSM')
     wd.start()
     children.append(wd)
 
@@ -58,6 +59,9 @@ if __name__ == '__main__':
 
     # collector = Collector(mailpost=mpqueue)
     # collector.start()
+
+    fake = FakeRMC(mailpost=mpqueue)
+    fake.start()
 
     while True:
         try:

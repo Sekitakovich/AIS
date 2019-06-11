@@ -54,6 +54,7 @@ class Dynamics(object):
             'distance': self.distance,
             'angle': self.angle,
             'status': self.status,
+            'signal': self.signal,
         }
 
 

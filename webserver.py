@@ -22,12 +22,13 @@ def index():
 
 class Server(Process):
 
-    def __init__(self, *, name: str):
+    def __init__(self, *, name: str, osm: str):
 
         super().__init__()
 
         self.daemon = True
         self.name = name
+        self.osm = osm
 
         self.logger = logging.getLogger('Log')
 

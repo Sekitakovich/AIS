@@ -47,7 +47,6 @@ class Cycle(Thread):
             self.logger.debug(msg='*** Cycle %d' % (self.counter,))
 
             voidlist: List[int] = []
-            newsdict: Dict[int, Enemy.dynamic] = {}
 
             with self.locker:
                 for mmsi, body in self.enemy.items():
@@ -57,8 +56,8 @@ class Cycle(Thread):
                         if static.at > self.last:
                             # print('static (%d) name = [%s] at %s' % (mmsi, static.name, static.at))
                             info = {
+                                'type': 'AISS',
                                 'mmsi': mmsi,
-                                'type': 'Vs',  # Vessel static
                                 'mode': 'i',  # insert
                                 'data': static.listup(),
                             }
@@ -74,15 +73,13 @@ class Cycle(Thread):
                     if dynamic.status:
                         if dynamic.at > self.last:  # updated
                             if dynamic.signal != 'F':
-                                newsdict[mmsi] = dynamic
-                                # print('dynamic (%d) in %s distance = %f' % (mmsi, dynamic.signal, dynamic.distance))
-                            # info = {
-                            #     'mmsi': mmsi,
-                            #     'type': 'Vd',  # Vessel dynamic
-                            #     'data': dynamic.listup(),
-                            # }
-                            # news = json.dumps(info)
-                            # self.broadcast(message=news)
+                                info = {
+                                    'type': 'AISD',
+                                    'mmsi': mmsi,
+                                    'data': dynamic.listup(),
+                                }
+                                news = json.dumps(info)
+                                self.broadcast(message=news)
                         else:
                             ps = (just-dynamic.at).total_seconds()
                             if ps > 60 * 6:
@@ -93,9 +90,6 @@ class Cycle(Thread):
                 for mmsi in voidlist:
                     print('void %d' % (mmsi,))
                     del(self.enemy[mmsi])
-
-                for k, v in newsdict.items():
-                    print('dynamic (%d) in %s distance = %f' % (k, v.signal, v.distance))
 
             self.last = just
             self.counter += 1
@@ -213,7 +207,7 @@ class Session(Thread):
         except (IndexError, ValueError) as e:
             self.logger.debug(msg=e)
         else:
-            if status != 'N':
+            if status != 'V':
                 try:
 
                     hh = int(utc[0][0:2])
@@ -246,7 +240,7 @@ class Session(Thread):
                 pass
 
             info = {
-                'mode': 'GPS',
+                'type': 'GPS',
                 'data': self.cockpit.listup(),
             }
             news = json.dumps(info)
@@ -272,7 +266,7 @@ class Session(Thread):
                     self.atVDM(nmea=nmea, counter=self.counter)
                     pass
                 elif suffix == 'RMC':
-                    # self.atRMC(nmea=nmea, counter=self.counter)
+                    self.atRMC(nmea=nmea, counter=self.counter)
                     pass
                 else:
                     pass

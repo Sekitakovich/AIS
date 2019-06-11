@@ -1,0 +1,13 @@
+.hg
+*~
+*.bin
+*.o
+*.s
+DIRECTIONS.org
+*.outdir
+*.pyc
+.*.sh
+*.exe
+*.obj
+*.out
+*.bower_components

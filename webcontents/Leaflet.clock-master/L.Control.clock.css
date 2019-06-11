@@ -1,0 +1,9 @@
+.leaflet-control-clock {
+    padding: 4px 4px;
+    font: 16px/16px Arial, Helvetica, sans-serif;
+    font-weight: bolder;
+    background: white;
+    /*background: rgba(255,255,255,0.5);*/
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}

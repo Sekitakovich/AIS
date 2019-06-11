@@ -2,40 +2,256 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <style>
+        @keyframes fadeIn {
+            0% {
+                opacity: 0
+            }
+            100% {
+                opacity: 1
+            }
+        }
+
+        .leaflet-marker-icon {
+            animation: fadeIn 1s ease 0s 0.5 normal;
+        }
+
+        .leaflet-popup-content-wrapper{
+            background-color: gray;
+            opacity: 0.75;
+        }
+        div#baseStage {
+            width: 768px;
+            height: 620px;
+            display: flex;
+            padding: 4px;
+            background-color: white;
+            border: 1px solid black;
+        }
+
+        div#mapStage {
+            padding: 4px;
+            width: 600px;
+            height: 600px;
+            background-color: white;
+        }
+
+        div#panelStage {
+            padding: 4px;
+            width: 180px;
+            height: 600px;
+            /*border: 1px solid black;*/
+            color: white;
+            background-color: grey;
+        }
+
+        @keyframes blink {
+            75% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes blinkTomvy {
+            95% {
+                opacity: 0.5;
+            }
+        }
+
+        .blinking {
+            animation: blink 1s step-end infinite;
+        }
+
+        .tomvy {
+            animation: blinkTomvy 1s step-end infinite;
+        }
+
+        table#controlPanel {
+            width: 100%;
+        }
+
+        table#controlPanel td {
+            text-align: center;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        table#controlPanel th {
+            border: 1px solid white;
+            color: white;
+            background-color: #34aadc;
+            text-align: center;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .rangeText {
+            width: 48px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .panelButton {
+            width: 72px;
+        }
+
+        .panelText {
+            width: 64px;
+            text-align: center;
+            /*font-weight: bold;*/
+        }
+
+        .latlng {
+            padding: 2px;
+            width: 64px;
+            text-align: center;
+        }
+    </style>
+    <link rel="stylesheet" href="../webcontents/leaflet/leaflet.css" type="text/css">
     <script type="text/javascript" src="../webcontents/jquery-3.4.1.js"></script>
-    <script type="text/javascript" src="../webcontents/agh.sprintf.js-master/agh.sprintf.js"></script>
+    <script type="text/javascript" src="../webcontents/leaflet/leaflet.js"></script>
+    <script type="text/javascript" src="../webcontents/js/leaflet.rotatedMarker.js"></script>
+    <script type="text/javascript" src="../webcontents/leaflet-icon-pulse-master/dist/L.Icon.Pulse.js"></script>
+    <link rel="stylesheet" href="../webcontents/leaflet-icon-pulse-master/dist/L.Icon.Pulse.css" type="text/css">
+    <script type="text/javascript" src="../webcontents/Leaflet.singleclick-gh-pages/singleclick.js"></script>
+    <script type="text/javascript" src="../webcontents/justgage-master/justgage.js"></script>
+    <script type="text/javascript" src="../webcontents/justgage-master/raphael-2.1.4.min.js"></script>
+    <script type="text/javascript" src="../webcontents/colorbox-master/jquery.colorbox-min.js"></script>
+    <link rel="stylesheet" href="../webcontents/colorbox-master/EE/colorbox.css" type="text/css">
+    <script type="text/javascript" src="../webcontents/Leaflet.clock-master/L.Control.clock.js"></script>
+    <link rel="stylesheet" href="../webcontents/Leaflet.clock-master/L.Control.clock.css" type="text/css">
     <script type="text/javascript" src="../webcontents/common.js"></script>
+    <script type="text/javascript" src="../webcontents/ee.js"></script>
+
+    <title>EagleEye</title>
 </head>
 <body>
-{{ name }}
-</body>
+
+<div id="baseStage">
+    <div id="mapStage"></div>
+    <div id="panelStage">
+        <table id="controlPanel">
+            <tr>
+                <th>Speed</th>
+            </tr>
+            <tr>
+                <td>
+                    <div id="sogMeter"></div>
+                </td>
+            </tr>
+            <tr>
+                <th>Position (Lat:Lng)</th>
+            </tr>
+            <tr>
+                <td><input type="text" id="Lat" class="latlng" readonly> : <input type="text" id="Lng" class="latlng"
+                                                                                  readonly></td>
+            </tr>
+            <tr>
+                <th>
+                    <div>G-Zone <input id="rangeText" type="text" class="rangeText" value="0.125" readonly> NM</div>
+                    <br>
+                    <div><input type="button" class="panelButton" id="ZN" value="&#9660;"> <input type="button"
+                                                                                                  class="panelButton"
+                                                                                                  id="ZW"
+                                                                                                  value="&#9650;">
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <div><input type="button" class="panelButton" id="autoRange" value="AUTO"> <input type="text"
+                                                                                                      class="panelText"
+                                                                                                      id="rangeBox"
+                                                                                                      value=""
+                                                                                                      readonly></div>
+                    <div><input type="button" class="panelButton" id="autoscroll" value="PAN"> <input type="text"
+                                                                                                         class="panelText"
+                                                                                                         id="scrollBox"
+                                                                                                         value=""
+                                                                                                         readonly></div>
+                    <div><input type="button" class="panelButton" id="soundOnOff" value="SOUND"> <input type="text"
+                                                                                                        class="panelText"
+                                                                                                        id="soundBox"
+                                                                                                        value=""
+                                                                                                        readonly></div>
+                </td>
+            </tr>
+            <tr>
+                <th>Options</th>
+            </tr>
+            <tr>
+                <td>
+                    <!--<div><input type="button" class="panelButton" id="autoRange" value="RANGE"> <input type="text"-->
+                    <!--class="panelText"-->
+                    <!--id="rangeBox"-->
+                    <!--value=""-->
+                    <!--readonly></div>-->
+                    <!--<div>-->
+                    <!--<input type="button" class="" id="shipButton" value="SHIP">-->
+                    <input type="button" class="" id="atonButton" value="AtoN">
+                    <input type="button" class="" id="reset" value="Reset">
+    </div>
+    </td>
+    </tr>
+    </table>
+    <!---->
+    <p align="center"><a href="../webcontents/help/help.html" id="help">HELP</a></p>
+    <!---->
+</div>
+</div>
+
 <script type="text/javascript">
 
     jQuery(document).ready(function (e) {
+        console.log('Start');
 
-        console.log(sprintf('Start'));
+        stage = new Stage('mapStage');
+        jQuery('#mapStage').hide().fadeIn(3000);
 
-        var server = location.hostname;
-        var port = 9999;
-        var url = 'ws://' + server + ':' + port.toString(); console.log(url);
+        function connection(url) {
 
-        var startup = function () {
+            console.log('WS: URL = ' + url);
+            let ws = new WebSocket(url);
 
-            ws = new WebSocket(url);
             ws.onopen = function (e) {
-                console.log('websocket open');
+                console.log('WS: Open');
             };
-            ws.onmessage = function (msg) {
-                var news = jQuery.parseJSON(msg['data']);
-                dispatcher(news);
+            ws.onerror = function (e) {
+                console.log('WS: Error');
             };
-            ws.onclose = function () {
-                startup();
+            ws.onclose = function (e) {
+                console.log('WS: Close');
+                setTimeout(10 * 1000, connection(url));
             };
-        };
-        startup();
+            ws.onmessage = function (e) {
+                var info = JSON.parse(e.data); // console.log(info);
+                stage.onReceived(info);
+                // switch (info['mode']) {
+                //     case 'VDO':
+                //         stage.onVDO(info['item']);
+                //         break;
+                //     case 'VDM':
+                //         stage.onVDM(info);
+                //         break;
+                //     default:
+                //         break;
+                // }
+            };
+        }
+
+        var url = 'ws://' + location.hostname + ':' + 9999;
+        connection(url);
+
+        jQuery('#help').colorbox({
+            iframe: true,
+            transition: "fade",
+            speed: 250,
+            opacity: 0.5,
+            width: "75%",
+            height: "40%",
+        });
 
     });
+
 </script>
+</body>
 </html>
