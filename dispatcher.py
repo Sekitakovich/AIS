@@ -32,13 +32,9 @@ from enemy import Enemy
 
 class Dispatcher(object):
 
-    def __init__(self, *, cockpit: Cockpit, enemy: Dict[int, Enemy]):
+    def __init__(self):
 
         self.logger = logging.getLogger('Log')
-
-        self.cockpit = cockpit
-        # self.enemy: Dict[int, Enemy] = {}
-        self.enemy = enemy
 
         self.header = Header()
         self.type1to3 = Type1to3()
@@ -81,16 +77,6 @@ class Dispatcher(object):
 
             if thisType in (Constants.MessageType.Type1, Constants.MessageType.Type2, Constants.MessageType.Type3):
                 body = self.type1to3.decode(payload=payload)
-                if body.error == body.ErrorCode.noError:
-                    src = body.member
-                    if thisMMSI not in self.enemy:
-                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
-                    self.enemy[thisMMSI].updateDynamic(
-                        lat=src['maplat'],
-                        lng=src['maplng'],
-                        sog=src['speed'],
-                        cog=src['course'])
-
                 pass
 
             elif thisType in (Constants.MessageType.Type4, Constants.MessageType.Type11):
@@ -99,18 +85,6 @@ class Dispatcher(object):
 
             elif thisType == Constants.MessageType.Type5:
                 body = self.type5.decode(payload=payload)
-                if body.error == body.ErrorCode.noError:
-                    src = body.member
-                    if thisMMSI not in self.enemy:
-                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
-                    self.enemy[thisMMSI].updateStatic(
-                        version=src['ais_version'],
-                        imo=src['imo'],
-                        name=src['shipname'],
-                        type=src['shiptype'],
-                        callsign=src['callsign'],
-                        aistype=Constants.AIStype.ClassA,
-                    )
                 pass
 
             elif thisType == Constants.MessageType.Type6:
@@ -147,33 +121,10 @@ class Dispatcher(object):
 
             elif thisType == Constants.MessageType.Type18:
                 body = self.type18.decode(payload=payload)
-                if body.error == body.ErrorCode.noError:
-                    src = body.member
-                    if thisMMSI not in self.enemy:
-                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
-                    self.enemy[thisMMSI].updateDynamic(
-                        lat=src['maplat'],
-                        lng=src['maplng'],
-                        sog=src['speed'],
-                        cog=src['course'])
                 pass
 
             elif thisType == Constants.MessageType.Type19:
                 body = self.type19.decode(payload=payload)
-                if body.error == body.ErrorCode.noError:
-                    src = body.member
-                    if thisMMSI not in self.enemy:
-                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
-                    self.enemy[thisMMSI].updateStatic(
-                        name=src['shipname'],
-                        type=src['shiptype'],
-                        aistype=Constants.AIStype.ClassB_SOTDMA,
-                    )
-                    self.enemy[thisMMSI].updateDynamic(
-                        lat=src['maplat'],
-                        lng=src['maplng'],
-                        sog=src['speed'],
-                        cog=src['course'])
                 pass
 
             elif thisType == Constants.MessageType.Type20:
@@ -204,15 +155,6 @@ class Dispatcher(object):
                     result = target['A']
                     result.member.update(target['B'].member)
                     body = result
-                    src = body.member
-                    if thisMMSI not in self.enemy:
-                        self.enemy[thisMMSI] = Enemy(cockpit=self.cockpit)
-                    self.enemy[thisMMSI].updateStatic(
-                        name=src['shipname'],
-                        type=src['shiptype'],
-                        callsign=src['callsign'],
-                        aistype=Constants.AIStype.ClassB_CSTDMA,
-                    )
                     pass
                 else:
                     body.error = rb.ErrorCode.AIS.type24notCompleted
@@ -244,9 +186,5 @@ class Dispatcher(object):
 
         else:
             rb.error = header.error
-
-        # for k, v in self.vessel.items():
-        #     if v.aisType in (Constants.AIStype.ClassB_SOTDMA, Constants.AIStype.ClassB_CSTDMA):
-        #         print(v)
 
         return rb

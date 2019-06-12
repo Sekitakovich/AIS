@@ -420,7 +420,7 @@ class Stage {
     /*
     *   他船アイコンの制御
      */
-    manageMarker(mmsi) {
+    manageMarker(mmsi, flag) {
 
         const owner = this.eSymbol[mmsi]; //console.log(owner);
         const meter = this.distance(mmsi); // console.log(meter);
@@ -432,7 +432,7 @@ class Stage {
             }
             delete (this.eSymbol[mmsi]);
             console.log('--- del ', mmsi);
-        } else if (meter < this.greenZone) {
+        } else if (meter < this.greenZone || true) {
             const latlng = {'lat': owner['lat'], 'lon': owner['lon']};
             let opacity = 0.5;
             let name = '';
@@ -440,11 +440,30 @@ class Stage {
             let inRed = false;
             let cog = 0;
 
-            if (meter < this.redZone) {
-                opacity = 1.0;
-                inRed = true;
-            }
+            // if (meter < this.redZone) {
+            // if(flag == 'R' || flag == 'X'){ console.log(mmsi);
+            //     inRed = true;
+            // }
+            // else{
+            //     opacity = 0.5;
+            // }
 
+            switch (flag) {
+                case 'F':
+                    break;
+                case 'G':
+                    opacity = 0.5;
+                    break;
+                case 'R':
+                    opacity = 1.0;
+                    break;
+                case 'X':
+                    opacity = 1.0;
+                    inRed = true;
+                    break;
+                default:
+                    break;
+            }
             if (false) {
                 ;
             }
@@ -561,12 +580,10 @@ class Stage {
                 }
                 owner.setRedCondition(false);
             }
-        } else {
-            if (owner['marker']) {
-                this.Map.removeLayer(owner['marker']);
-                owner['marker'] = null;
-                console.log('--- out ', mmsi);
-            }
+        } else if (owner['marker']) {
+            this.Map.removeLayer(owner['marker']);
+            owner['marker'] = null;
+            console.log('--- out ', mmsi);
         }
 
         // if(this.autoRange) {
@@ -795,7 +812,10 @@ class Stage {
     }
 
     onAISD(mmsi, flag, data) {
-        console.log('D', mmsi, flag, data);
+        // console.log('D', mmsi, flag, data);
+        // if(flag == 'R' || flag == 'X'){
+        //     console.log(mmsi);
+        // }
         const item = data;
         if ((mmsi in this.eSymbol) == false) {
             const code3 = parseInt(mmsi.toString().substr(0, 3));
@@ -810,7 +830,7 @@ class Stage {
         if (mmsi in this.shipinfo) { // 先に動的情報を受信していた場合
             this.eSymbol[mmsi].haveStatic = true;
         }
-        this.manageMarker(mmsi);
+        this.manageMarker(mmsi, flag);
         this.manageSound();
     }
 

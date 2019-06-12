@@ -1,22 +1,25 @@
-import os
-import math
+import json
 import logging
+import math
+import os
+import time
 from datetime import datetime as dt
 from datetime import timedelta as td
-from threading import Thread, Lock
-import json
-import websocket
-import time
 from multiprocessing import Queue as MPQueue
 from queue import Queue
-from typing import List
+from threading import Thread, Lock
 from typing import Dict
+from typing import List
 
-from dispatcher import Dispatcher
-from common import Constants
+import websocket
+
 from archive import Archive
-from enemy import Enemy
 from cockpit import Cockpit
+from common import Constants
+from dispatcher import Dispatcher
+from enemy import Enemy
+from peripheral import MonoLED
+from buzzer import Buzzer
 
 
 class Cycle(Thread):
@@ -35,75 +38,90 @@ class Cycle(Thread):
         self.counter = 0
         self.last = dt.utcnow()
 
-    def broadcast(self, *, message: str):
-        self.ws.send(message)
+        self.led = MonoLED(bcm=21)
+        self.currentMode = self.led.stop
+        self.led.set(mode=self.currentMode)
+
+        self.buzzer = Buzzer(bcm=18)
+        self.currentJingle = ''
+
+    def alert(self):
+
+        zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+
+        nextmode = self.led.stop
+        nextJingle: str = ''
+
+        with self.locker:
+            for mmsi, body in self.enemy.items():
+                dynamic = body.dynamic
+                if dynamic.status:
+                    if dynamic.flag == 'X':
+                        nextmode = self.led.fast
+                        nextJingle = 'pupu'
+                        break
+                    elif dynamic.flag == 'R':
+                        nextmode = self.led.slow
+                        nextJingle = 'pu'
+                        break
+
+        if nextmode != self.currentMode:
+            self.logger.debug(msg='mode was changed from %s to %s' % (self.currentMode, nextmode))
+            self.led.set(mode=nextmode)
+            self.currentMode = nextmode
+
+        # if zone.alert:
+        if True:
+            if nextJingle != self.currentJingle:
+                self.logger.debug(msg='jingle was changed from %s to %s' % (self.currentJingle, nextJingle))
+                self.buzzer.push(name=nextJingle)
+                self.currentJingle = nextJingle
+
+    def cleanup(self):
+
+        just = dt.utcnow()
+        voidlist: List[int] = []
+
+        with self.locker:
+            for mmsi, body in self.enemy.items():
+                dynamic = body.dynamic
+                static = body.static
+                if static.status:
+                    if static.at > self.last:
+                        pass
+                    else:
+                        ps = (just - static.at).total_seconds()
+                        if ps > 60 * 60 * 24:
+                            voidlist.append(mmsi)
+                        elif ps > 60 * 6:
+                            static.status = False
+
+                if dynamic.status:
+                    if dynamic.at > self.last:  # updated
+                        pass
+                    else:
+                        ps = (just - dynamic.at).total_seconds()
+                        if ps > 60 * 6:
+                            dynamic.status = False
+                else:
+                    pass
+
+        for mmsi in voidlist:
+            print('void %d' % (mmsi,))
+            del (self.enemy[mmsi])
+            pass
 
     def run(self):
 
         while True:
+
             time.sleep(1)
-            just = dt.utcnow()
 
-            # self.logger.debug(msg='*** Cycle %d' % (self.counter,))
-            zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+            self.alert()
 
-            voidlist: List[int] = []
+            if (self.counter % 60) == 0:
+                self.cleanup()
 
-            with self.locker:
-                for mmsi, body in self.enemy.items():
-                    dynamic = body.dynamic
-                    static = body.static
-                    if static.status:
-                        if static.at > self.last:
-                            # print('static (%d) name = [%s] at %s' % (mmsi, static.name, static.at))
-                            info = {
-                                'type': 'AISS',
-                                'mmsi': mmsi,
-                                'mode': 'i',  # insert
-                                'data': static.listup(),
-                            }
-                            news = json.dumps(info)
-                            self.broadcast(message=news)
-                        else:
-                            ps = (just-static.at).total_seconds()
-                            if ps > 60 * 60 * 24:
-                                voidlist.append(mmsi)
-                            elif ps > 60 * 6:
-                                static.status = False
-
-                    if dynamic.status:
-                        if dynamic.at > self.last:  # updated
-                            flag: str = 'F'  # Far
-                            if dynamic.distance <= zone.red:
-                                flag = 'X'
-                                pass
-                            elif dynamic.distance <= zone.radius:
-                                flag = 'R'
-                                pass
-                            elif dynamic.distance <= zone.green:
-                                flag = 'G'
-                                pass
-                            if flag != 'F':
-                                info = {
-                                    'type': 'AISD',
-                                    'mmsi': mmsi,
-                                    'flag': flag,
-                                    'data': dynamic.listup(),
-                                }
-                                news = json.dumps(info)
-                                self.broadcast(message=news)
-                        else:
-                            ps = (just-dynamic.at).total_seconds()
-                            if ps > 60 * 6:
-                                dynamic.status = False
-                    else:
-                        pass
-
-                for mmsi in voidlist:
-                    print('void %d' % (mmsi,))
-                    del(self.enemy[mmsi])
-
-            self.last = just
             self.counter += 1
 
 
@@ -139,7 +157,7 @@ class Session(Thread):
         self.archive.start()
 
         # self.children = [self.dispatcher, self.archive]
-        self.dispatcher = Dispatcher(enemy=self.enemy, cockpit=self.cockpit)
+        self.dispatcher = Dispatcher()
 
         self.locker = Lock()
         self.cycle = Cycle(cockpit=self.cockpit, enemy=self.enemy, locker=self.locker, ws=self.ws)
@@ -162,6 +180,61 @@ class Session(Thread):
         value = (integer + ((decimal * 60) / 100)) * 100
 
         return value
+
+    def profeelEnemy(self, *, mmsi: int, version: int = 0, name: str, imo: int = 0, type: int = 0, callsign: str = '', aistype: Constants.AIStype = Constants.AIStype.unknown):
+
+        if mmsi not in self.enemy:
+            self.enemy[mmsi] = Enemy()
+        target = self.enemy[mmsi]
+
+        target.updateStatic(version=version, name=name, imo=imo, callsign=callsign, aistype=aistype, type=type)
+
+        info = {
+            'type': 'AISS',
+            'mmsi': mmsi,
+            'mode': 'i',  # insert
+            'data': target.static.listup(),
+        }
+        message = json.dumps(info)
+        self.broadcast(message=message)
+
+    def actEnemy(self, *, mmsi: int, lat: float, lng: float, sog: float, cog: float):
+
+        if mmsi not in self.enemy:
+            self.enemy[mmsi] = Enemy()
+        target = self.enemy[mmsi]
+        target.updateDynamic(lat=lat, lng=lng, sog=sog, cog=cog)
+        measure = self.cockpit.measure(lat=lat, lng=lng)
+        flag: str = 'F'  # Far
+        zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+
+        if measure.distance <= zone.red:
+            flag = 'X'
+            pass
+        elif measure.distance <= zone.radius:
+            flag = 'R'
+            pass
+        elif measure.distance <= zone.green:
+            flag = 'G'
+            pass
+
+        if flag != target.dynamic.flag:
+            target.dynamic.flag = flag
+
+        info = {
+            'type': 'AISD',
+            'mmsi': mmsi,
+            'flag': flag,
+            'data': target.dynamic.listup(),
+        }
+        message = json.dumps(info)
+        self.broadcast(message=message)
+
+    def patrol(self):
+
+        for mmsi, v in self.enemy.items():
+            dynamic = v.dynamic
+            self.actEnemy(mmsi=mmsi, lat=dynamic.lat, lng=dynamic.lng, sog=dynamic.sog, cog=dynamic.cog)
 
     def atVDM(self, *, nmea: list, counter: int):
 
@@ -189,7 +262,7 @@ class Session(Thread):
                     if len(self.fragment[id]) == ft:
                         payload = ''.join(self.fragment[id])
                         doit = True
-                    del(self.fragment[id])
+                    del (self.fragment[id])
                 else:
                     pass
             else:
@@ -198,6 +271,23 @@ class Session(Thread):
             if doit:
                 with self.locker:
                     result = self.dispatcher.parse(payload=payload, fillbits=fillbits)
+                    if result.error == result.ErrorCode.noError:
+                        header = result.member['header']
+                        mmsi = header['mmsi']
+                        type = header['type']
+                        body = result.member['body']
+
+                        if type in (1, 2, 3, 18, 19):
+                            self.actEnemy(mmsi=mmsi, lat=body['maplat'], lng=body['maplng'], sog=body['speed'], cog=body['course'])
+                        elif type == 5:
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], callsign=body['callsign'], imo=body['imo'], type=body['shiptype'], aistype=Constants.AIStype.ClassA)
+                            pass
+                        elif type == 19:
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIStype.ClassB_CSTDMA)
+                            pass
+                        elif type == 24:
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIStype.ClassB_SOTDMA)
+                            pass
 
     def atRMC(self, *, nmea: list, counter: int):
 
@@ -230,6 +320,9 @@ class Session(Thread):
                     mm = int(ymd[2:4])
                     dd = int(ymd[0:2])
 
+                except (ValueError,) as e:
+                    self.logger.debug(msg=e)
+                else:
                     rmcnow = dt(year=yy, month=mm, day=dd, hour=hh, minute=mm, second=ss, microsecond=ms)
                     sysnow = dt.utcnow()
                     self.deltas = (rmcnow - sysnow).total_seconds()
@@ -243,11 +336,12 @@ class Session(Thread):
                         cog=float(cog) if cog else 0,
                         status=status == 'A',
                     )
-
-                except (ValueError,) as e:
-                    self.logger.debug(msg=e)
-                else:
                     pass
+
+                    # --------------------------------------------------------------------------------
+                    self.patrol()
+                    # --------------------------------------------------------------------------------
+
             else:
                 pass
 
@@ -289,4 +383,3 @@ class Session(Thread):
                 self.aq.put(archive)
 
                 self.counter += 1
-

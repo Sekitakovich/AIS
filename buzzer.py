@@ -41,12 +41,17 @@ class Buzzer(object):
                 KeyNote(hz=2000, length=0.2),
                 KeyNote(hz=0, length=0.5),
             ]),
-            'pupu': Jingle(loop=False, pattern=[
+            'pu': Jingle(loop=True, pattern=[
+                KeyNote(hz=1000, length=0.1),
+                KeyNote(hz=0, length=0.05),
+                KeyNote(hz=0, length=1.0),
+            ]),
+            'pupu': Jingle(loop=True, pattern=[
                 KeyNote(hz=1000, length=0.1),
                 KeyNote(hz=0, length=0.05),
                 KeyNote(hz=1000, length=0.1),
                 KeyNote(hz=0, length=0.05),
-                KeyNote(hz=0, length=0.5),
+                KeyNote(hz=0, length=1.0),
             ]),
             'sos': Jingle(loop=True, pattern=[
                 KeyNote(hz=440, length=0.1),
@@ -74,7 +79,7 @@ class Buzzer(object):
         while True:
             if self.current:
                 jingle = self.jingle[self.current]
-                print('Playing [%s] loop = %s' % (self.current, jingle.loop))
+                # print('Playing [%s] loop = %s' % (self.current, jingle.loop))
                 for sound in jingle.pattern:
                     self.pi.hardware_PWM(self.pin, sound.hz, 100000)
                     time.sleep(sound.length)
@@ -84,7 +89,7 @@ class Buzzer(object):
                     self.current = ''
                 pass
             else:
-                print('Waiting ...')
+                # print('Waiting ...')
                 self.event.wait()
                 self.event.clear()
 

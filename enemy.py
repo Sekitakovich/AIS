@@ -1,8 +1,6 @@
 from datetime import datetime as dt
-from datetime import timedelta as td
 
 from common import Constants
-from cockpit import Cockpit
 
 
 class Statics(object):
@@ -42,7 +40,7 @@ class Dynamics(object):
 
         self.distance: float = 0.0
         self.angle: float = 0.0
-        # self.flag: str = '?'
+        self.flag: str = 'F'
 
     def listup(self) -> dict:
 
@@ -54,17 +52,15 @@ class Dynamics(object):
             'distance': self.distance,
             'angle': self.angle,
             'status': self.status,
-            # 'signal': self.flag,
+            'flag': self.flag,
         }
 
 
 class Enemy(object):
 
-    def __init__(self, *, cockpit: Cockpit):
+    def __init__(self):
 
         self.aisType: Constants.AIStype = Constants.AIStype.unknown
-
-        self.cockpit = cockpit
 
         self.static: Statics = Statics()
         self.dynamic: Dynamics = Dynamics()
@@ -73,9 +69,9 @@ class Enemy(object):
 
     def updateStatic(self, *, callsign: str = '', name: str, aistype: Constants.AIStype, imo: int = 0, version: int = 0, type: int = 0):
 
-        self.aisType = aistype
         self.static.at = dt.utcnow()  # 最終更新日時
 
+        self.aisType = aistype
         self.static.version = version
         self.static.imo = imo
         self.static.callsign = callsign
@@ -95,24 +91,6 @@ class Enemy(object):
         self.dynamic.lng = lng
         self.dynamic.sog = sog
         self.dynamic.cog = cog
-
-        measure = self.cockpit.measure(lat=lat, lng=lng)
-        self.dynamic.distance = measure.distance
-        self.dynamic.angle = measure.angle
-
-        # zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
-        # color: str = 'F'  # Far
-        # if self.dynamic.distance <= zone.red:
-        #     color = 'R'
-        #     pass
-        # elif self.dynamic.distance <= zone.radius:
-        #     color = 'Y'
-        #     pass
-        # elif self.dynamic.distance <= zone.green:
-        #     color = 'G'
-        #     pass
-        #
-        # self.dynamic.flag = color
 
         self.dynamic.counter += 1
         self.dynamic.status = True

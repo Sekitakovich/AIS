@@ -8,10 +8,11 @@ from routine import Measurement
 
 class Zone(object):
 
-    def __init__(self, *, radius: float, sog: int, zoom: int):
+    def __init__(self, *, radius: float, sog: int, zoom: int, alert: bool = False):
         self.radius: float = radius  # radius of guard zone meter
         self.sog: int = sog  # notice! knot
         self.zoom: int = zoom  # OSM zoomlevel
+        self.alert: bool = alert
 
         self.red = radius / 2
         self.green = radius * 2
@@ -46,10 +47,10 @@ class Cockpit(object):  # this vessel's cockpit depend on GPRMC
         self.zoneMaster: List[Zone] = [
             Zone(radius=0.125, zoom=16, sog=5),
             Zone(radius=0.250, zoom=15, sog=10),
-            Zone(radius=0.5, zoom=14, sog=15),
-            Zone(radius=1, zoom=13, sog=20),
-            Zone(radius=2, zoom=12, sog=25),
-            Zone(radius=4, zoom=11, sog=40),
+            Zone(radius=0.5, zoom=14, sog=15, alert=True),
+            Zone(radius=1, zoom=13, sog=20, alert=True),
+            Zone(radius=2, zoom=12, sog=25, alert=True),
+            Zone(radius=4, zoom=11, sog=40, alert=True),
             # Zone(radius=8, zoom=10, sog=10000),
         ]
         self.currentZone: int = 0
@@ -152,6 +153,6 @@ if __name__ == '__main__':
 
     for end, v in e.items():
         result = cockpit.measure(lat=v['lat'], lng=v['lng'])
-        mile = cockpit.meter2mile(meter=result.distance)
+        meter = cockpit.mile2meter(mile=result.distance)
         print(
-            'from [%s] to [%s] : 距離 = %.2f (%.2f) 方位角 = %.2f' % (top['name'], end, result.distance, mile, result.angle))
+            'from [%s] to [%s] : 距離 = %.2f mile (%.2f km) 方位角 = %.2f' % (top['name'], end, result.distance, meter, result.angle))
