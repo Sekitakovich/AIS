@@ -1,10 +1,10 @@
 import logging
-from queue import Queue
+from queue import Queue as ThreadQueue
 from multiprocessing import Queue as MPQueue
 from typing import Dict, List
 
 from session import Session
-from receiver import Receiver
+from serialreceiver import Receiver
 from webserver import Server as WebServer
 from wsserver import Server as WSServer
 from common import Constants
@@ -22,11 +22,16 @@ if __name__ == '__main__':
     logger.addHandler(streamhandler)
     logger.debug('Session start')
 
+    mpqueue = MPQueue()  # queue for multiprocessing
+    threadqueue = ThreadQueue()  # queue for threading
+
+    ws = WSServer(port=Constants.wsport)
+    ws.start()
+
     wd = WebServer(name='Flask')
     wd.start()
 
-    mpqueue = MPQueue()
-    receiver: Dict[str, dict] = {
+    serialReceiver: Dict[str, dict] = {
         # 'GPS': {
         #     'port': '/dev/ttyACM0',
         #     'baud': 9600,
@@ -36,23 +41,22 @@ if __name__ == '__main__':
             'baud': 38400,
         },
     }
+    for k, v in serialReceiver.items():
+        receiver = Receiver(port=v['port'], baud=v['baud'], mailpost=mpqueue, name=k)
+        receiver.start()
 
-    ws = WSServer(port=Constants.wsport)
-    ws.start()
+    udpReceiver: Dict[str, dict] = {
+        'GPS': {
+            'port': 60001,
+            'ipv4': '239.192.0.1',
+        },
+    }
+    for k, v in udpReceiver.items():
+        receiver = UDPListner(mailpost=mpqueue, port=v['port'], ipv4=v['ipv4'])
+        receiver.start()
 
-    for k, v in receiver.items():
-        dst = Receiver(port=v['port'], baud=v['baud'], mailpost=mpqueue, name=k)
-        dst.start()
-
-    threadqueue = Queue()
     session = Session(entrance=threadqueue)
     session.start()
-
-    # collector = Collector(mailpost=mpqueue)
-    # collector.start()
-
-    udp = UDPListner(mailpost=mpqueue)
-    udp.start()
 
     while True:
         try:

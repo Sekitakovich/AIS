@@ -21,9 +21,9 @@ class Receiver(Process):
         self.inspector = Inspector()
         self.logger = logging.getLogger('Log')
 
-    def __del__(self):
-
-        self.logger.debug(msg='Bye Bye!')
+    # def __del__(self):
+    #
+    #     self.logger.debug(msg='Bye Bye!')
 
     def run(self):
 

@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 from math import sin, cos, tan, atan2, acos, radians, degrees, modf
 from typing import List
+import logging
 
 from routine import Measurement
 
@@ -19,6 +20,9 @@ class Zone(object):
 class Cockpit(object):  # this vessel's cockpit depend on GPRMC
 
     def __init__(self):
+
+        self.logger = logging.getLogger('Log')
+
         self.utc: dt = dt.utcnow()
         self.status: bool = False
         self.lat: float = 0.0
@@ -68,10 +72,13 @@ class Cockpit(object):  # this vessel's cockpit depend on GPRMC
         self.radLat = radians(self.mapLat)
         self.radLng = radians(self.mapLng)
 
+        lastzone = self.currentZone
         for index, z in enumerate(self.zoneMaster):
             if sog <= z.sog:
                 self.currentZone = index
                 break
+        if lastzone != self.currentZone:
+            self.logger.debug(msg='ZoneRange was moved %d -> %d' % (lastzone, self.currentZone))
 
         self.at = dt.utcnow()
 

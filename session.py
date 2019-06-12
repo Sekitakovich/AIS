@@ -44,7 +44,7 @@ class Cycle(Thread):
             time.sleep(1)
             just = dt.utcnow()
 
-            self.logger.debug(msg='*** Cycle %d' % (self.counter,))
+            # self.logger.debug(msg='*** Cycle %d' % (self.counter,))
             zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
 
             voidlist: List[int] = []

@@ -1,3 +1,4 @@
+import os
 import logging
 import socket
 from contextlib import closing
@@ -9,7 +10,7 @@ from nmea import Inspector
 
 class Receiver(Process):
 
-    def __init__(self, *, mailpost: Queue, name: str = 'fake GPRMC'):
+    def __init__(self, *, port: int, ipv4: str, mailpost: Queue, name: str = 'fake GPRMC'):
         super().__init__()
 
         self.daemon = True
@@ -17,23 +18,26 @@ class Receiver(Process):
         self.logger = logging.getLogger('Log')
         self.qp = mailpost
 
-        self.thisIPV4 = '0.0.0.0'  # inaddr_any
+        self.inaddr_any = '0.0.0.0'  # inaddr_any
         self.bufferSize = (1024 * 4)
 
         self.isMulti = True
-        self.thisGroup = '239.192.0.1'
-        self.thisPort = 60001
+        self.ipv4 = ipv4
+        self.port = port
 
         self.inspector = Inspector()
 
     def run(self):
+
+        self.logger.debug(msg='process %d' % os.getpid())
+
         with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
             if self.isMulti:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-                                socket.inet_aton(self.thisGroup) + socket.inet_aton(self.thisIPV4))
+                                socket.inet_aton(self.ipv4) + socket.inet_aton(self.inaddr_any))
 
-            sock.bind(('', self.thisPort))
+            sock.bind(('', self.port))
             sock.settimeout(5)
 
             while True:
@@ -54,7 +58,7 @@ class Receiver(Process):
 if __name__ == '__main__':
 
     qp = Queue()
-    receiver = Receiver(mailpost=qp)
+    receiver = Receiver(mailpost=qp, port=60001, ipv4='239.192.0.1')
     receiver.start()
 
     while True:
