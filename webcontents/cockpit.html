@@ -19,6 +19,7 @@
 <body>
 <form id="main" name="main">
     <div id="panel" class="Panel">
+        <input type="checkbox" id="use">
         <input type="button" id="turnL" value="<">
         <input type="button" id="sogD" value="-">
         <input type="range" id="sogbar" min="0" max="80" value="0">
@@ -32,11 +33,12 @@
 </body>
 <script type="text/javascript">
 
-    function control(sog, cog) {
+    function control(use, sog, cog) {
         const url = '/voyage';
         jQuery.ajax(url, {
             type: 'GET',
             data: {
+                use: use? 1:0,
                 sog: sog,
                 cog: cog,
             }
@@ -53,9 +55,17 @@
     jQuery(document).ready(function () {
         console.log('Start');
 
+        let use = false;
         let sog = 0;
         let cog = 0;
+
         const arrow = jQuery('#arrow');
+
+        const useThis = jQuery('#use');
+        useThis.on('click', function(e){
+            use = useThis.prop('checked');
+            control(use, sog, cog);
+        });
 
         const sogVal = jQuery('#sogVal');
         const cogVal = jQuery('#cogVal');
@@ -73,7 +83,7 @@
         sogbar.on('change', function (e) {
             sog = sogbar.val();
             sogVal.val(sogbar.val());
-            control(sog, cog);
+            control(use, sog, cog);
         });
 
         const sogD = jQuery('#sogD');
@@ -82,7 +92,7 @@
                 sog--;
                 sogbar.val(sog);
                 sogVal.val(sog);
-                control(sog, cog);
+                control(use, sog, cog);
             }
         });
 
@@ -92,7 +102,7 @@
             if (sog <= sogMax) {
                 sogbar.val(sog);
                 sogVal.val(sog);
-                control(sog, cog);
+                control(use, sog, cog);
             }
         });
 
@@ -104,7 +114,7 @@
             }
             cogVal.val(cog);
             arrow.rotate(cog);
-            control(sog, cog);
+            control(use, sog, cog);
         });
 
         const turnR = jQuery('#turnR');
@@ -115,7 +125,7 @@
             }
             cogVal.val(cog);
             arrow.rotate(cog);
-            control(sog, cog);
+            control(use, sog, cog);
         });
 
     });
