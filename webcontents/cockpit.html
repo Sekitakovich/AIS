@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cockpit</title>
+    <style>
+        input.Digit {
+            width: 48px;
+            text-align: center;
+        },
+        div.Panel {
+            text-align: center;
+            vertical-align: center;
+        }
+    </style>
+    <script type="text/javascript" src="jquery-3.4.1.js"></script>
+    <script type="text/javascript" src="jQueryRotate.js"></script>
+</head>
+<body>
+<form id="main" name="main">
+    <div id="panel" class="Panel">
+        <input type="button" id="turnL" value="<">
+        <input type="button" id="sogD" value="-">
+        <input type="range" id="sogbar" min="0" max="80" value="0">
+        <input type="button" id="sogU" value="+">
+        <input type="button" id="turnR" value=">">
+        SOG <input type="text" id="sogVal" maxlength="4" value="0" class="Digit">
+        COG <input type="text" id="cogVal" maxlength="3" value="0" class="Digit">
+        <img src="imgs/upperarrow.png" id="arrow" width="32" height="32">
+    </div>
+</form>
+</body>
+<script type="text/javascript">
+
+    function control(sog, cog) {
+        const url = '/voyage';
+        jQuery.ajax(url, {
+            type: 'GET',
+            data: {
+                sog: sog,
+                cog: cog,
+            }
+        }).then(
+            function (data) {
+                console.log(data);
+            },
+            function () {
+                console.log('error');
+            }
+        );
+    }
+
+    jQuery(document).ready(function () {
+        console.log('Start');
+
+        let sog = 0;
+        let cog = 0;
+        const arrow = jQuery('#arrow');
+
+        const sogVal = jQuery('#sogVal');
+        const cogVal = jQuery('#cogVal');
+
+        // sogVal.on('change', function(e){
+        //     console.log('SOG');
+        // });
+        // cogVal.on('change', function(e){
+        //     console.log('COG');
+        // });
+
+        const sogbar = jQuery('#sogbar');
+        const sogMin = 0;
+        const sogMax = sogbar.prop('max');
+        sogbar.on('change', function (e) {
+            sog = sogbar.val();
+            sogVal.val(sogbar.val());
+            control(sog, cog);
+        });
+
+        const sogD = jQuery('#sogD');
+        sogD.on('click', function (e) {
+            if (sog > sogMin) {
+                sog--;
+                sogbar.val(sog);
+                sogVal.val(sog);
+                control(sog, cog);
+            }
+        });
+
+        const sogU = jQuery('#sogU');
+        sogU.on('click', function (e) {
+            sog++;
+            if (sog <= sogMax) {
+                sogbar.val(sog);
+                sogVal.val(sog);
+                control(sog, cog);
+            }
+        });
+
+        const turnL = jQuery('#turnL');
+        turnL.on('click', function (e) {
+            cog--;
+            if (cog < 0) {
+                cog = 360 + cog;
+            }
+            cogVal.val(cog);
+            arrow.rotate(cog);
+            control(sog, cog);
+        });
+
+        const turnR = jQuery('#turnR');
+        turnR.on('click', function (e) {
+            cog++;
+            if (cog == 360) {
+                cog = 0;
+            }
+            cogVal.val(cog);
+            arrow.rotate(cog);
+            control(sog, cog);
+        });
+
+    });
+</script>
+</html>

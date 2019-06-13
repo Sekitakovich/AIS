@@ -3,6 +3,7 @@ import logging
 from threading import Thread
 from flask import Flask
 from flask import render_template
+from flask import request
 
 from common import Constants
 
@@ -13,6 +14,12 @@ app = Flask(__name__, static_folder='webcontents', template_folder='webtemplates
 def favicon():
     return app.send_static_file("favicon.ico")
 
+@app.route('/voyage')
+def voyage():
+    sog = int(request.args.get('sog', 0))
+    cog = int(request.args.get('cog', 0))
+    print('sog:cog = %d:%d' % (sog, cog))
+    return 'OK'
 
 @app.route('/')
 def index():
