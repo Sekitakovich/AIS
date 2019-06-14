@@ -19,7 +19,7 @@
 <body>
 <form id="main" name="main">
     <div id="panel" class="Panel">
-        <input type="checkbox" id="use">
+        <label>enable controller <input type="checkbox" id="use"></label>
         <input type="button" id="turnL" value="<">
         <input type="button" id="sogD" value="-">
         <input type="range" id="sogbar" min="0" max="80" value="0">
@@ -34,7 +34,7 @@
 <script type="text/javascript">
 
     function control(use, sog, cog) {
-        const url = '/voyage';
+        const url = '/control';
         jQuery.ajax(url, {
             type: 'GET',
             data: {
@@ -108,7 +108,7 @@
 
         const turnL = jQuery('#turnL');
         turnL.on('click', function (e) {
-            cog--;
+            cog-=15;
             if (cog < 0) {
                 cog = 360 + cog;
             }
@@ -119,7 +119,7 @@
 
         const turnR = jQuery('#turnR');
         turnR.on('click', function (e) {
-            cog++;
+            cog+=15;
             if (cog == 360) {
                 cog = 0;
             }

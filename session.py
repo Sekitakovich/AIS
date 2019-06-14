@@ -19,7 +19,7 @@ from common import Constants
 from dispatcher import Dispatcher
 from enemy import Enemy
 from peripheral import MonoLED
-from buzzer import Buzzer
+from TestAndSamples.buzzer import Buzzer
 
 
 class Cycle(Thread):
