@@ -7,6 +7,8 @@ import socket
 import logging
 from threading import Thread
 
+from common import Constants
+
 
 class GPRMC(object):
 
@@ -18,8 +20,8 @@ class GPRMC(object):
         self.latMeterPerSec: float = 30.820
         self.lngMeterPerSec: float = 25.153
 
-        self.group: str = '239.192.0.1'
-        self.port: int = 60001
+        self.group: str = Constants.Multicast.group
+        self.port: int = Constants.Multicast.port
 
         self.toplat: float = 35.153453  # 浦賀沖
         self.toplng: float = 139.778591

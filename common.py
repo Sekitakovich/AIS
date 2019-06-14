@@ -10,6 +10,15 @@ class Constants(object):
 
     intervalsecs: int = 60  # for timekeeper
 
+    class Emulator(object):
+
+        aislog: str = 'emulator/TokyoBay20171107.db'
+
+    class Multicast(object):
+
+        group: str = '239.192.0.1'
+        port: int = 60001
+
     class GPS(object):
 
         class Mode(IntEnum):

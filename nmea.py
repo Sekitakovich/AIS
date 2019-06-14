@@ -17,7 +17,7 @@ class Inspector(object):
             body = envelope[1:-3]
             your = int(envelope[-2:], 16)
         except (IndexError, ValueError) as e:
-            self.logger.debug(msg='%s at [%s]' % (e, envelope))
+            # self.logger.debug(msg='%s at [%s]' % (e, envelope))
             return False
         else:
             mine = self.libcsum.checksum(body, len(body))

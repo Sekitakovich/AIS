@@ -45,8 +45,9 @@ class Receiver(Process):
                     raw, ipv4 = sock.recvfrom(self.bufferSize)  # use blocking
                     pass
                 except Exception as e:
-                    self.logger.debug(msg=e)
+                    # self.logger.debug(msg=e)
                     # break
+                    pass
                 else:
                     envelope = raw[:-2]  # cut off <CR><LF>
                     if self.inspector.checksum(envelope=envelope):

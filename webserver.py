@@ -8,9 +8,12 @@ from flask import request
 
 from common import Constants
 from emulator.gprmc import GPRMC
+from emulator.playback import Emulator
+
 
 app = Flask(__name__, static_folder='webcontents', template_folder='webtemplates')
 locator = GPRMC()
+emulator = Emulator()
 
 
 @app.route("/favicon.ico")
@@ -25,6 +28,7 @@ def control() -> str:
     sog: int = int(request.args.get('sog', 0))
     cog: int = int(request.args.get('cog', 0))
 
+    emulator.update(use=use)
     locator.update(sog=sog, cog=cog, use=use)
 
     return 'OK'
