@@ -49,7 +49,16 @@ class Receiver(Process):
                     # break
                     pass
                 else:
-                    envelope = raw[:-2]  # cut off <CR><LF>
+                    raw = raw[:-2]  # cut off <CR><LF>
+                    symbol = raw[:5]
+                    if symbol == b'UdPbC':  # 450
+                        body = raw[5+1:].decode()
+                        part = body.split('\\')
+                        envelope = part[-1].encode()
+                        pass
+                    else:
+                        envelope = raw
+
                     if self.inspector.checksum(envelope=envelope):
                         self.qp.put(envelope.decode())
                     else:

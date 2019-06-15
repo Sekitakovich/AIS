@@ -251,6 +251,18 @@ class Stage {
         }).addTo(this.Map);
         console.log('Map', this.Map);
 
+        // var minimapLayer = L.tileLayer(
+        //     'webcontents/tiles/{z}/{x}/{y}.png', {
+        //         attribution: 'Overview',
+        //         maxZoom: 16,
+        //         minZoom: 10,
+        //     });
+        // var miniMap = new L.Control.MiniMap(minimapLayer,{
+        //     zoomLevelOffset: -5,
+        //     width: 80,
+        //     height: 80,
+        // }).addTo(this.Map);
+
         let clock = new L.Control.Clock();
         clock.addTo(this.Map);
         leaflet_control_clock();
@@ -840,7 +852,12 @@ class Stage {
         const data = message['data'];
 
         if (type == 'GPS') {
-            this.onGPS(data);
+            const live = message['live'];
+            if (live) {
+                this.onGPS(data);
+            } else {
+                console.log('where am I ???');
+            }
         } else if (type == 'AISD') {
             const mmsi = message['mmsi'];
             const flag = message['flag'];

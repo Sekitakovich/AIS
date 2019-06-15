@@ -21,6 +21,8 @@ class Constants(object):
 
     class GPS(object):
 
+        timeout = 60 * 1
+
         class Mode(IntEnum):
             N = 0,
             A = 1,

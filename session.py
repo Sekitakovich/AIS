@@ -22,6 +22,27 @@ from peripheral import MonoLED
 from TestAndSamples.buzzer import Buzzer
 
 
+# class BroadCaster(object):
+#
+#     def __init__(self, *, ws: websocket.create_connection, type: str):
+#
+#         self.ws = ws
+#         self.info = {
+#             'type': type,
+#             'mmsi': 0,
+#             'mode': 'i',  # insert
+#             'data': '',
+#         }
+#
+#     def send(self, *, mmsi: int, body: str):
+#
+#         self.info['mmsi'] = mmsi
+#         self.info['data'] = body
+#
+#         message = json.dumps(self.info)
+#         self.ws.send(message)
+#
+#
 class Cycle(Thread):
 
     def __init__(self, *, cockpit: Cockpit, enemy: Dict[int, Enemy], locker: Lock, ws: websocket.create_connection):
@@ -47,7 +68,7 @@ class Cycle(Thread):
 
     def alert(self):
 
-        zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
+        # zone = self.cockpit.zoneMaster[self.cockpit.currentZone]
 
         nextmode = self.led.stop
         nextJingle: str = ''
@@ -116,11 +137,21 @@ class Cycle(Thread):
         while True:
 
             time.sleep(1)
+            now = dt.utcnow()
 
             self.alert()
 
             if (self.counter % 60) == 0:
                 self.cleanup()
+
+            if (now-self.cockpit.at).total_seconds() >= Constants.GPS.timeout:
+                info = {
+                    'type': 'GPS',
+                    'live': False,
+                }
+                news = json.dumps(info)
+                self.ws.send(news)
+                pass
 
             self.counter += 1
 
@@ -295,16 +326,15 @@ class Session(Thread):
 
             status = str(nmea[2])
 
-            lat = nmea[3]
-            ns = nmea[4]
-            lng = nmea[5]
-            ew = nmea[6]
-            sog = nmea[7]
-            cog = nmea[8]
+            lat = str(nmea[3])
+            lng = str(nmea[5])
+            ns = str(nmea[4])
+            ew = str(nmea[6])
+            sog = str(nmea[7])
+            cog = str(nmea[8])
 
-            utc = nmea[1].split('.')
-
-            ymd = nmea[9]
+            ymd = str(nmea[9])
+            utc = str(nmea[1]).split('.')
 
         except (IndexError, ValueError) as e:
             self.logger.debug(msg=e)
@@ -312,10 +342,10 @@ class Session(Thread):
             if status != 'V':
                 try:
 
-                    hh = int(utc[0][0:2])
-                    mm = int(utc[0][2:4])
-                    ss = int(utc[0][4:6])
-                    ms = int(utc[1])
+                    HH = int(utc[0][0:2])
+                    MM = int(utc[0][2:4])
+                    SS = int(utc[0][4:6])
+                    MS = int(utc[1]) if len(utc) > 1 else 0  # fuck!
                     yy = int(ymd[4:6]) + 2000
                     mm = int(ymd[2:4])
                     dd = int(ymd[0:2])
@@ -323,7 +353,7 @@ class Session(Thread):
                 except (ValueError,) as e:
                     self.logger.debug(msg=e)
                 else:
-                    rmcnow = dt(year=yy, month=mm, day=dd, hour=hh, minute=mm, second=ss, microsecond=ms)
+                    rmcnow = dt(year=yy, month=mm, day=dd, hour=HH, minute=MM, second=SS, microsecond=MS)
                     sysnow = dt.utcnow()
                     self.deltas = (rmcnow - sysnow).total_seconds()
 
@@ -347,6 +377,7 @@ class Session(Thread):
 
             info = {
                 'type': 'GPS',
+                'live': True,
                 'data': self.cockpit.listup(),
             }
             news = json.dumps(info)

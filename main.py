@@ -50,6 +50,10 @@ if __name__ == '__main__':
             'port': 60001,
             'ipv4': '239.192.0.1',
         },
+        'AIS': {
+            'port': 60008,
+            'ipv4': '239.192.0.8',
+        },
     }
     for k, v in udpReceiver.items():
         receiver = UDPListner(mailpost=mpqueue, port=v['port'], ipv4=v['ipv4'])

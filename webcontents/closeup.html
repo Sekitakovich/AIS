@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CloseUp</title>
+    <link rel="stylesheet" href="closeup.css" type="text/css">
+    <script type="text/javascript" src="jquery-3.4.1.js"></script>
+</head>
+<body>
+<div id="main">
+    <img src="./imgs/golden-eagle-1080x675.jpg" width="25%" height="25%">
+    <p>
+        EagleEye!
+    </p>
+</div>
+</body>
+<script type="text/javascript">
+    jQuery(document).ready(function (e) {
+        console.log('Start');
+
+        var scale = 2;
+
+        var magnifyingGlass = jQuery('<div class="magnifying_glass"></div>');
+        var jQuerymagnifiedContent = jQuery('<div class="magnified_content"></div>');
+        var magnifyingLens = jQuery('<div class="magnifying_lens"></div>');
+
+//setup
+        jQuerymagnifiedContent.css({
+            backgroundColor: jQuery("html").css("background-color") || jQuery("body").css("background-color"),
+            backgroundImage: jQuery("html").css("background-image") || jQuery("body").css("background-image"),
+            backgroundAttachment: jQuery("html").css("background-attachment") || jQuery("body").css("background-attachment"),
+            backgroundPosition: jQuery("html").css("background-position") || jQuery("body").css("background-position")
+        });
+
+//jQuerymagnifiedContent.html(innerShiv(jQuery(document.body).html())); //fix html5 for ie<8, must also include script
+        jQuerymagnifiedContent.html(jQuery(document.body).html());
+
+        magnifyingGlass.append(jQuerymagnifiedContent);
+        magnifyingGlass.append(magnifyingLens); //comment this line to allow interaction
+        jQuery(document.body).append(magnifyingGlass);
+
+//funcs
+
+
+        function updateViewSize() {
+            jQuerymagnifiedContent.css({
+                width: jQuery(document).width(),
+                height: jQuery(document).height()
+            });
+        }
+
+//begin
+        updateViewSize();
+
+//events
+        jQuery(window).resize(updateViewSize);
+
+        magnifyingGlass.mousedown(function (e) {
+            e.preventDefault();
+            jQuery(this).data("drag", {
+                mouse: {
+                    top: e.pageY,
+                    left: e.pageX
+                },
+                offset: {
+                    top: jQuery(this).offset().top,
+                    left: jQuery(this).offset().left
+                }
+            });
+        });
+
+        jQuery(document.body).mousemove(function (e) {
+            if (magnifyingGlass.data("drag")) {
+                var drag = magnifyingGlass.data("drag");
+
+                var left = drag.offset.left + (e.pageX - drag.mouse.left);
+                var top = drag.offset.top + (e.pageY - drag.mouse.top);
+
+                magnifyingGlass.css({
+                    left: left,
+                    top: top
+                });
+                jQuerymagnifiedContent.css({
+                    left: -left * scale,
+                    top: -top * scale
+                });
+
+            }
+        }).mouseup(function () {
+            magnifyingGlass.removeData("drag");
+        });
+    });
+</script>
+</html>

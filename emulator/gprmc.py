@@ -23,8 +23,11 @@ class GPRMC(object):
         self.group: str = Constants.Multicast.group
         self.port: int = Constants.Multicast.port
 
-        self.toplat: float = 35.153453  # 浦賀沖
-        self.toplng: float = 139.778591
+        # self.toplat: float = 35.153453  # 浦賀沖
+        # self.toplng: float = 139.778591
+
+        self.toplat: float = 34.969767  # 浦賀沖
+        self.toplng: float = 139.743500
 
         self.lat: float = self.toplat
         self.lng: float = self.toplng

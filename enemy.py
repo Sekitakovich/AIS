@@ -21,7 +21,9 @@ class Statics(object):
 
         return {
             'name': self.name,
+            'imo': self.imo,
             'type': self.type,
+            'callsign': self.callsign,
         }
 
 
