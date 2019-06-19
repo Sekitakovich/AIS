@@ -42,7 +42,7 @@ div#panelStage {
     width: 200px;
     height: 480px;
     color: white;
-    background-color: grey;
+    background-color: darkgray;
 }
 
 table#controlPanel {
