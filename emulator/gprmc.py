@@ -26,8 +26,11 @@ class GPRMC(object):
         # self.toplat: float = 35.153453  # 浦賀沖
         # self.toplng: float = 139.778591
 
-        self.toplat: float = 34.969767  # 浦賀沖
-        self.toplng: float = 139.743500
+        # self.toplat: float = 34.969767  # 浦賀沖
+        # self.toplng: float = 139.743500
+
+        self.toplat: float = 35.221975  # 久里浜
+        self.toplng: float = 139.719938
 
         self.lat: float = self.toplat
         self.lng: float = self.toplng

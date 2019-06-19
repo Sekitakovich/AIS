@@ -18,31 +18,11 @@ from cockpit import Cockpit
 from common import Constants
 from dispatcher import Dispatcher
 from enemy import Enemy
+from enemy import AtoN
 from peripheral import MonoLED
 from TestAndSamples.buzzer import Buzzer
 
 
-# class BroadCaster(object):
-#
-#     def __init__(self, *, ws: websocket.create_connection, type: str):
-#
-#         self.ws = ws
-#         self.info = {
-#             'type': type,
-#             'mmsi': 0,
-#             'mode': 'i',  # insert
-#             'data': '',
-#         }
-#
-#     def send(self, *, mmsi: int, body: str):
-#
-#         self.info['mmsi'] = mmsi
-#         self.info['data'] = body
-#
-#         message = json.dumps(self.info)
-#         self.ws.send(message)
-#
-#
 class Cycle(Thread):
 
     def __init__(self, *, cockpit: Cockpit, enemy: Dict[int, Enemy], locker: Lock, ws: websocket.create_connection):
@@ -167,6 +147,7 @@ class Session(Thread):
         self.cockpit = Cockpit()
         self.cockpit.update(lat=self.deg2dm(deg=35.297318), lng=self.deg2dm(deg=139.757328), sog=22)
         self.enemy: Dict[int, Enemy] = {}
+        self.aton: Dict[int, AtoN] = {}
 
         self.entrance = entrance
         self.counter: int = 0
@@ -212,7 +193,24 @@ class Session(Thread):
 
         return value
 
-    def profeelEnemy(self, *, mmsi: int, version: int = 0, name: str, imo: int = 0, type: int = 0, callsign: str = '', aistype: Constants.AIStype = Constants.AIStype.unknown):
+    def typeAtoN(self, *, mmsi: int, name: str, type: int, lat: float, lng: float):
+
+        if mmsi not in self.aton:
+            self.aton[mmsi] = AtoN()
+        target = self.aton[mmsi]
+        target.update(name=name, type=type, lat=lat, lng=lng)
+
+        info = {
+            'type': 'AtoN',
+            'mmsi': mmsi,
+            'data': target.listup(),
+        }
+        message = json.dumps(info)
+        self.broadcast(message=message)
+
+        return
+
+    def profeelEnemy(self, *, mmsi: int, version: int = 0, name: str, imo: int = 0, type: int = 0, callsign: str = '', aistype: Constants.AIS.AIStype = Constants.AIS.AIStype.unknown):
 
         if mmsi not in self.enemy:
             self.enemy[mmsi] = Enemy()
@@ -311,13 +309,16 @@ class Session(Thread):
                         if type in (1, 2, 3, 18, 19):
                             self.actEnemy(mmsi=mmsi, lat=body['maplat'], lng=body['maplng'], sog=body['speed'], cog=body['course'])
                         elif type == 5:
-                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], callsign=body['callsign'], imo=body['imo'], type=body['shiptype'], aistype=Constants.AIStype.ClassA)
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], callsign=body['callsign'], imo=body['imo'], type=body['shiptype'], aistype=Constants.AIS.AIStype.ClassA)
                             pass
                         elif type == 19:
-                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIStype.ClassB_CSTDMA)
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIS.AIStype.ClassB_CSTDMA)
                             pass
                         elif type == 24:
-                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIStype.ClassB_SOTDMA)
+                            self.profeelEnemy(mmsi=mmsi, name=body['shipname'], type=body['shiptype'], aistype=Constants.AIS.AIStype.ClassB_SOTDMA)
+                            pass
+                        elif type == 21:
+                            self.typeAtoN(mmsi=mmsi, name=body['name'], type=body['aid_type'], lat=body['maplat'], lng=body['maplng'])
                             pass
 
     def atRMC(self, *, nmea: list, counter: int):

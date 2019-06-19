@@ -34,6 +34,11 @@ def control() -> str:
     return 'OK'
 
 
+@app.route('/cockpit')
+def cockpit():
+    name: str = 'Cockpit for debugging'
+    return render_template('cockpit.html', name=name)
+
 @app.route('/')
 def index():
     name: str = 'EagleEye'

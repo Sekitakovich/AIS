@@ -70,9 +70,9 @@ class MonoLED(object):
             else:
                 time.sleep(1)
 
-    def __del__(self):
-        self.pi.stop()
-        return
+    # def __del__(self):
+    #     self.pi.stop()
+    #     return
 
 
 if __name__ == '__main__':

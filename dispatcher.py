@@ -75,67 +75,67 @@ class Dispatcher(object):
             thisRepeat: int = int(header.member['repeat'])
             thisMMSI: int = int(header.member['mmsi'])
 
-            if thisType in (Constants.MessageType.Type1, Constants.MessageType.Type2, Constants.MessageType.Type3):
+            if thisType in (Constants.AIS.MessageType.Type1, Constants.AIS.MessageType.Type2, Constants.AIS.MessageType.Type3):
                 body = self.type1to3.decode(payload=payload)
                 pass
 
-            elif thisType in (Constants.MessageType.Type4, Constants.MessageType.Type11):
+            elif thisType in (Constants.AIS.MessageType.Type4, Constants.AIS.MessageType.Type11):
                 body = self.type4and11.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type5:
+            elif thisType == Constants.AIS.MessageType.Type5:
                 body = self.type5.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type6:
+            elif thisType == Constants.AIS.MessageType.Type6:
                 body = self.type6.decode(payload=payload)
                 pass
 
-            elif thisType in (Constants.MessageType.Type7, Constants.MessageType.Type13):
+            elif thisType in (Constants.AIS.MessageType.Type7, Constants.AIS.MessageType.Type13):
                 body = self.type7and13.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type8:
+            elif thisType == Constants.AIS.MessageType.Type8:
                 body = self.type8.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type12:
+            elif thisType == Constants.AIS.MessageType.Type12:
                 body = self.type12.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type14:
+            elif thisType == Constants.AIS.MessageType.Type14:
                 body = self.type14.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type15:
+            elif thisType == Constants.AIS.MessageType.Type15:
                 body = self.type15.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type16:
+            elif thisType == Constants.AIS.MessageType.Type16:
                 body = self.type16.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type17:
+            elif thisType == Constants.AIS.MessageType.Type17:
                 body = self.type17.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type18:
+            elif thisType == Constants.AIS.MessageType.Type18:
                 body = self.type18.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type19:
+            elif thisType == Constants.AIS.MessageType.Type19:
                 body = self.type19.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type20:
+            elif thisType == Constants.AIS.MessageType.Type20:
                 body = self.type20.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type21:
+            elif thisType == Constants.AIS.MessageType.Type21:
                 body = self.type21.decode(payload=payload)
                 pass
 
-            elif thisType == Constants.MessageType.Type24:
+            elif thisType == Constants.AIS.MessageType.Type24:
 
                 if thisMMSI not in self.save24:
                     self.save24[thisMMSI] = {}
@@ -160,7 +160,7 @@ class Dispatcher(object):
                     body.error = rb.ErrorCode.AIS.type24notCompleted
                     pass
 
-            elif thisType == Constants.MessageType.Type27:
+            elif thisType == Constants.AIS.MessageType.Type27:
                 body = self.type27.decode(payload=payload)
                 pass
 

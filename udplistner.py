@@ -10,7 +10,7 @@ from nmea import Inspector
 
 class Receiver(Process):
 
-    def __init__(self, *, port: int, ipv4: str, mailpost: Queue, name: str = 'fake GPRMC'):
+    def __init__(self, *, port: int, ipv4: str, mailpost: Queue, name: str = 'UDPListner'):
         super().__init__()
 
         self.daemon = True

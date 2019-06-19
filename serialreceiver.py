@@ -15,11 +15,22 @@ class Receiver(Process):
 
         self.daemon = True
         self.name = name
+
+        self.ready = True
+
         self.qp = mailpost
-        self.sensor = serial.Serial(port, baudrate=baud)
+        self.port = port
 
         self.inspector = Inspector()
         self.logger = logging.getLogger('Log')
+
+        try:
+            self.sensor = serial.Serial(port, baudrate=baud)
+        except (serial.SerialException, ) as e:
+            self.ready = False
+            self.logger.debug(msg=e)
+        else:
+            pass
 
     # def __del__(self):
     #
@@ -27,33 +38,45 @@ class Receiver(Process):
 
     def run(self):
 
-        self.logger.debug(msg='process %d' % os.getpid())
+        if self.ready:
+            self.logger.debug(msg='process %d' % os.getpid())
 
-        while True:
+            while True:
 
-            try:
-                raw = self.sensor.readline(1024)
-            except KeyboardInterrupt as e:
-                self.logger.debug(msg=e)
-                break
-            except serial.SerialException as e:
-                self.logger.debug(msg=e)
-            else:
-                envelope = raw[:-2]  # cut off <CR><LF>
-                if self.inspector.checksum(envelope=envelope):
-                    self.qp.put(envelope.decode())
+                try:
+                    raw = self.sensor.readline(1024)
+                except KeyboardInterrupt as e:
+                    self.logger.debug(msg=e)
+                    break
+                except serial.SerialException as e:
+                    self.logger.debug(msg=e)
                 else:
-                    self.logger.debug(msg='checksum not match at [%s]' % (envelope,))
+                    envelope = raw[:-2]  # cut off <CR><LF>
+                    if self.inspector.checksum(envelope=envelope):
+                        self.qp.put(envelope.decode())
+                    else:
+                        self.logger.debug(msg='checksum not match at [%s]' % (envelope,))
+        else:
+            self.logger.debug(msg='%s(%s) not ready' % (self.name, self.port))
 
 
 if __name__ == '__main__':
 
-    port = '/dev/ttyACM0'
+    logger = logging.getLogger('Log')
+    logger.setLevel(logging.DEBUG)
+    formatter = '%(asctime)s %(module)s(%(lineno)s):%(funcName)s [%(levelname)s]: %(message)s'
+    streamhandler = logging.StreamHandler()
+    streamhandler.setFormatter(logging.Formatter(formatter, datefmt='%H:%M:%S'))
+    streamhandler.setLevel(logging.DEBUG)
+    logger.addHandler(streamhandler)
+    logger.debug('Session start')
+
+    port = '/dev/ttyUSB0'
     baud = 9600
 
     qp = Queue()
 
-    sensor = Receiver(port=port, baud=baud, mailpost=qp)
+    sensor = Receiver(port=port, baud=baud, mailpost=qp, name='SerialListner')
     sensor.start()
 
     while True:

@@ -29,47 +29,50 @@ class Constants(object):
             D = 2,
             E = 3
 
-    class AIStype(IntEnum):
+    class AIS(object):
 
-        unknown = 0,
+        class AIStype(IntEnum):
 
-        ClassA = 1,
-        ClassB_SOTDMA = 2,
-        ClassB_CSTDMA = 3,
-        BaseStation = 4,
-        AidsToNavigation = 5,
-        SearchAndRescue = 6,
+            unknown = 0,
 
-    class MessageType(IntEnum):
+            ClassA = 1,
+            ClassB_SOTDMA = 2,
+            ClassB_CSTDMA = 3,
+            BaseStation = 4,
+            AidsToNavigation = 5,
+            SearchAndRescue = 6,
 
-        Type1 = 1
-        Type2 = 2
-        Type3 = 3
-        Type4 = 4
-        Type5 = 5
-        Type6 = 6
-        Type7 = 7
-        Type8 = 8
-        Type9 = 9
-        Type10 = 10
-        Type11 = 11
-        Type12 = 12
-        Type13 = 13
-        Type14 = 14
-        Type15 = 15
-        Type16 = 16
-        Type17 = 17
-        Type18 = 18
-        Type19 = 19
-        Type20 = 20
-        Type21 = 21
-        Type22 = 22
-        Type23 = 23
-        Type24 = 24
-        Type25 = 25
-        Type26 = 26
-        Type27 = 27
+        class MessageType(IntEnum):
 
-    class Expire(object):
+            Type1 = 1
+            Type2 = 2
+            Type3 = 3
+            Type4 = 4
+            Type5 = 5
+            Type6 = 6
+            Type7 = 7
+            Type8 = 8
+            Type9 = 9
+            Type10 = 10
+            Type11 = 11
+            Type12 = 12
+            Type13 = 13
+            Type14 = 14
+            Type15 = 15
+            Type16 = 16
+            Type17 = 17
+            Type18 = 18
+            Type19 = 19
+            Type20 = 20
+            Type21 = 21
+            Type22 = 22
+            Type23 = 23
+            Type24 = 24
+            Type25 = 25
+            Type26 = 26
+            Type27 = 27
 
-        static: int = 60 * 60
+        class Expire(object):
+
+            static: int = 60 * 60
+            AtoN: int = 60 * 3

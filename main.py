@@ -32,10 +32,10 @@ if __name__ == '__main__':
     wd.start()
 
     serialReceiver: Dict[str, dict] = {
-        # 'GPS': {
-        #     'port': '/dev/ttyACM0',
-        #     'baud': 9600,
-        # },
+        'GPS': {
+            'port': '/dev/ttyACM0',
+            'baud': 9600,
+        },
         'AIS': {
             'port': '/dev/ttyUSB0',
             'baud': 38400,
@@ -43,7 +43,8 @@ if __name__ == '__main__':
     }
     for k, v in serialReceiver.items():
         receiver = Receiver(port=v['port'], baud=v['baud'], mailpost=mpqueue, name=k)
-        receiver.start()
+        if receiver.ready:
+            receiver.start()
 
     udpReceiver: Dict[str, dict] = {
         'GPS': {
@@ -56,17 +57,13 @@ if __name__ == '__main__':
         },
     }
     for k, v in udpReceiver.items():
-        receiver = UDPListner(mailpost=mpqueue, port=v['port'], ipv4=v['ipv4'])
+        receiver = UDPListner(mailpost=mpqueue, port=v['port'], ipv4=v['ipv4'], name=k)
         receiver.start()
 
     session = Session(entrance=threadqueue)
     session.start()
 
     while True:
-        try:
-            sentence = mpqueue.get()
-            threadqueue.put(sentence)
-        except KeyboardInterrupt as e:
-            logger.debug(msg=e)
-            break
+        sentence = mpqueue.get()
+        threadqueue.put(sentence)
 

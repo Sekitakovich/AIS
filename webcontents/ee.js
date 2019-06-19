@@ -544,11 +544,13 @@ class Stage {
                 let shipName = '';
                 let callSign = '';
                 if (mmsi in this.shipinfo) {
-                    shipName = this.shipinfo[mmsi]['item']['shipname'];
+                    // shipName = this.shipinfo[mmsi]['item']['shipname'];
+                    shipName = this.shipinfo[mmsi]['item']['name'];
                     callSign = this.shipinfo[mmsi]['item']['callsign'];
                 }
                 const flag = '<img src="webcontents/nationFlags/' + owner['nation'] + '.png">';
-                const text = flag + ' ' + mmsi.toString() + ' (' + owner['nation'] + ')';
+                // const text = flag + ' ' + mmsi.toString() + ' (' + owner['nation'] + ')';
+                const text = flag + ' ' + shipName + ' (' + owner['nation'] + ')';
                 let html = [];
                 html.push(flag);
                 if (shipName) {
@@ -626,130 +628,130 @@ class Stage {
         }
     }
 
-    onAtoN(mmsi, item) { //console.log(item);
-        const lat = item['plus']['lat'];
-        const lon = item['plus']['lon'];
+    onAtoN(mmsi, data) { //console.log(item);
+        const lat = data['lat'];
+        const lon = data['lng'];
         const latlng = {'lat': lat, 'lon': lon};
         if (mmsi in this.AtoN == false) {
-            this.AtoN[mmsi] = new AtoN(item['name'], lat, lon);
+            this.AtoN[mmsi] = new AtoN(data['name'], lat, lon);
             this.AtoN[mmsi]['marker'] = L.marker(latlng, {
                 icon: L.icon.pulse({iconSize: [8, 8], color: 'Blue'}),
                 zIndex: 25,
             }).addTo(this.Map);
 
-            this.AtoN[mmsi]['marker'].bindTooltip(item['name']);
+            this.AtoN[mmsi]['marker'].bindTooltip(data['name']);
             console.log(this.AtoN);
         } else {
-            this.AtoN[mmsi].update(item[name], lat, lon)
+            this.AtoN[mmsi].update(data[name], lat, lon)
         }
     }
 
-    onVDO(item) { // console.log(item);
-
-        const sog = item['sog'];
-        this.sogMeter.refresh(sog);
-        if (this.autoRange) {
-            let index = 0;
-            for (let c of this.levelMaster) {
-                if (sog <= c['sog']) {
-                    break;
-                }
-                index++;
-            }
-            if (index != this.currentZone) {
-                console.log('sog =', sog, ' range ', index);
-                this.currentZone = index;
-                this.changeTheLevel();
-            }
-        }
-
-        this.latlng['lat'] = item['lat'];
-        this.latlng['lon'] = item['lon'];
-
-        this.ewns['lat'] = item['ns'];
-        this.ewns['lon'] = item['ew'];
-
-        this.latText.val(item['ns'] + ' ' + item['lat'].toFixed(3));
-        this.lngText.val(item['ew'] + ' ' + item['lon'].toFixed(3));
-
-        if (this.autoScroll) {
-            this.Map.panTo(this.latlng);
-        }
-        this.myShip.setLatLng(this.latlng);
-        this.myShip.setRotationAngle(item['cog']);
-        this.redCircle.setLatLng(this.latlng);
-        this.greenCircle.setLatLng(this.latlng);
-        for (var mmsi in this.eSymbol) {
-            this.manageMarker(mmsi);
-        }
-
-        this.manageSound();
-        localStorage.setItem("latlng", JSON.stringify(this.latlng));
-    }
-
-    onVDM(info) { // console.log(info);
-        const mmsi = info['mmsi'];
-        switch (info['type']) {
-            case 1:
-            case 2:
-            case 3:
-            case 18:
-                const item = info['item'];
-                if ((mmsi in this.eSymbol) == false) {
-                    const code3 = parseInt(mmsi.toString().substr(0, 3));
-                    let nation = '???';
-                    if (code3 in MMSInation) {
-                        nation = MMSInation[code3];
-                    }
-                    this.eSymbol[mmsi] = new Enemy(item['plus']['lat'], item['plus']['lon'], item['speed'], item['course'], item['status'], nation);
-                } else {
-                    this.eSymbol[mmsi].update(item['plus']['lat'], item['plus']['lon'], item['speed'], item['course'], item['status']);
-                }
-                if (mmsi in this.shipinfo) { // 先に動的情報を受信していた場合
-                    this.eSymbol[mmsi].haveStatic = true;
-                }
-                this.manageMarker(mmsi);
-                this.manageSound();
-                break;
-            case 5:
-            case 24:
-                // console.log('shiptype = ',info['item']['shiptype']);
-                if ((mmsi in this.shipinfo) == false) {
-                    const now = new Date(); // console.log(now);
-                    this.shipinfo[mmsi] = {'at': now, 'item': info['item']};
-
-                    const code3 = parseInt(mmsi.toString().substr(0, 3));
-                    let nation = '???';
-                    if (code3 in MMSInation) {
-                        nation = MMSInation[code3];
-                    } // console.log('Type',info['type'], code3, nation);
-
-                    if (mmsi in this.eSymbol) { // 先に動的情報を受信していた場合
-                        this.eSymbol[mmsi]['haveStatic'] = true;
-                        if (this.eSymbol[mmsi]['marker']) {
-                            this.Map.removeLayer(this.eSymbol[mmsi]['marker']);
-                            this.eSymbol[mmsi]['marker'] = null;
-                        }
-                        if (this.eSymbol[mmsi].getRedCondition() == true) {
-                            this.eSymbol[mmsi].setRedCondition(false);
-                        }
-                        this.manageMarker(mmsi);
-                        console.log('Catch static ', mmsi);
-                    }
-                    if (this.cacheTheShip) {
-                        localStorage.setItem("shipinfo", JSON.stringify(this.shipinfo)); // Notice!
-                    }
-                }
-                break;
-            case 21: // AtoN
-//            console.log(info);
-                this.onAtoN(mmsi, info['item']);
-                break;
-            default:
-                break;
-        }
-    }
-
+    // onVDO(item) { // console.log(item);
+    //
+    //     const sog = item['sog'];
+    //     this.sogMeter.refresh(sog);
+    //     if (this.autoRange) {
+    //         let index = 0;
+    //         for (let c of this.levelMaster) {
+    //             if (sog <= c['sog']) {
+    //                 break;
+    //             }
+    //             index++;
+    //         }
+    //         if (index != this.currentZone) {
+    //             console.log('sog =', sog, ' range ', index);
+    //             this.currentZone = index;
+    //             this.changeTheLevel();
+    //         }
+    //     }
+    //
+    //     this.latlng['lat'] = item['lat'];
+    //     this.latlng['lon'] = item['lon'];
+    //
+    //     this.ewns['lat'] = item['ns'];
+    //     this.ewns['lon'] = item['ew'];
+    //
+    //     this.latText.val(item['ns'] + ' ' + item['lat'].toFixed(3));
+    //     this.lngText.val(item['ew'] + ' ' + item['lon'].toFixed(3));
+    //
+    //     if (this.autoScroll) {
+    //         this.Map.panTo(this.latlng);
+    //     }
+    //     this.myShip.setLatLng(this.latlng);
+    //     this.myShip.setRotationAngle(item['cog']);
+    //     this.redCircle.setLatLng(this.latlng);
+    //     this.greenCircle.setLatLng(this.latlng);
+    //     for (var mmsi in this.eSymbol) {
+    //         this.manageMarker(mmsi);
+    //     }
+    //
+    //     this.manageSound();
+    //     localStorage.setItem("latlng", JSON.stringify(this.latlng));
+    // }
+    //
+//     onVDM(info) { // console.log(info);
+//         const mmsi = info['mmsi'];
+//         switch (info['type']) {
+//             case 1:
+//             case 2:
+//             case 3:
+//             case 18:
+//                 const item = info['item'];
+//                 if ((mmsi in this.eSymbol) == false) {
+//                     const code3 = parseInt(mmsi.toString().substr(0, 3));
+//                     let nation = '???';
+//                     if (code3 in MMSInation) {
+//                         nation = MMSInation[code3];
+//                     }
+//                     this.eSymbol[mmsi] = new Enemy(item['plus']['lat'], item['plus']['lon'], item['speed'], item['course'], item['status'], nation);
+//                 } else {
+//                     this.eSymbol[mmsi].update(item['plus']['lat'], item['plus']['lon'], item['speed'], item['course'], item['status']);
+//                 }
+//                 if (mmsi in this.shipinfo) { // 先に動的情報を受信していた場合
+//                     this.eSymbol[mmsi].haveStatic = true;
+//                 }
+//                 this.manageMarker(mmsi);
+//                 this.manageSound();
+//                 break;
+//             case 5:
+//             case 24:
+//                 // console.log('shiptype = ',info['item']['shiptype']);
+//                 if ((mmsi in this.shipinfo) == false) {
+//                     const now = new Date(); // console.log(now);
+//                     this.shipinfo[mmsi] = {'at': now, 'item': info['item']};
+//
+//                     const code3 = parseInt(mmsi.toString().substr(0, 3));
+//                     let nation = '???';
+//                     if (code3 in MMSInation) {
+//                         nation = MMSInation[code3];
+//                     } // console.log('Type',info['type'], code3, nation);
+//
+//                     if (mmsi in this.eSymbol) { // 先に動的情報を受信していた場合
+//                         this.eSymbol[mmsi]['haveStatic'] = true;
+//                         if (this.eSymbol[mmsi]['marker']) {
+//                             this.Map.removeLayer(this.eSymbol[mmsi]['marker']);
+//                             this.eSymbol[mmsi]['marker'] = null;
+//                         }
+//                         if (this.eSymbol[mmsi].getRedCondition() == true) {
+//                             this.eSymbol[mmsi].setRedCondition(false);
+//                         }
+//                         this.manageMarker(mmsi);
+//                         console.log('Catch static ', mmsi);
+//                     }
+//                     if (this.cacheTheShip) {
+//                         localStorage.setItem("shipinfo", JSON.stringify(this.shipinfo)); // Notice!
+//                     }
+//                 }
+//                 break;
+//             case 21: // AtoN
+// //            console.log(info);
+//                 this.onAtoN(mmsi, info['item']);
+//                 break;
+//             default:
+//                 break;
+//         }
+//     }
+//
     onGPS(data) {
         const sog = data['sog'];
         this.sogMeter.refresh(sog);
@@ -866,7 +868,11 @@ class Stage {
             const mmsi = message['mmsi'];
             const mode = message['mode'];
             this.onAISS(mmsi, data, mode);
-        } else {
+        } else if (type == 'AtoN'){
+            const mmsi = message['mmsi'];
+            this.onAtoN(mmsi, data);
+        }
+        else {
             console.log(message);
         }
     }
