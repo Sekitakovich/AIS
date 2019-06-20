@@ -2,8 +2,9 @@ import os
 import logging
 import socket
 from contextlib import closing
-from multiprocessing import Process
+from multiprocessing import Process, current_process
 from multiprocessing import Queue
+import setproctitle
 
 from nmea import Inspector
 
@@ -11,10 +12,14 @@ from nmea import Inspector
 class Receiver(Process):
 
     def __init__(self, *, port: int, ipv4: str, mailpost: Queue, name: str = 'UDPListner'):
+
         super().__init__()
 
         self.daemon = True
         self.name = name
+
+        setproctitle.setproctitle('EE:'+name)
+
         self.logger = logging.getLogger('Log')
         self.qp = mailpost
 

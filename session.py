@@ -13,7 +13,6 @@ from typing import List
 
 import websocket
 
-from archive import Archive
 from cockpit import Cockpit
 from common import Constants
 from dispatcher import Dispatcher
@@ -138,9 +137,10 @@ class Cycle(Thread):
 
 class Session(Thread):
 
-    def __init__(self, *, entrance: Queue, name: str = 'Session'):
+    def __init__(self, *, entrance: Queue, name: str = 'Session', aq: MPQueue):
 
         super().__init__()
+
         self.daemon = True
         self.name = name
 
@@ -164,9 +164,7 @@ class Session(Thread):
 
         self.logger = logging.getLogger('Log')
 
-        self.aq = MPQueue()
-        self.archive = Archive(qp=self.aq)
-        self.archive.start()
+        self.aq = aq
 
         # self.children = [self.dispatcher, self.archive]
         self.dispatcher = Dispatcher()
@@ -384,6 +382,13 @@ class Session(Thread):
             news = json.dumps(info)
             self.broadcast(message=news)
 
+    def buildUP(self, *, at: dt, nmea: str):
+        return json.dumps({
+            'ymd': at.strftime(Constants.SQLite.ymdFormat),
+            'hms': at.strftime(Constants.SQLite.hmsFormat),
+            'nmea': nmea,
+        })
+
     def run(self):
 
         self.logger.debug(msg='process %d' % os.getpid())
@@ -411,7 +416,7 @@ class Session(Thread):
             finally:
 
                 realtime = dt.utcnow() + td(seconds=self.deltas)
-                archive = self.archive.buildUP(at=realtime, nmea=sentence)
+                archive = self.buildUP(at=realtime, nmea=sentence)
                 self.aq.put(archive)
 
                 self.counter += 1

@@ -2,6 +2,7 @@ import os
 import websocket_server
 import logging
 from multiprocessing import Process
+import setproctitle
 
 
 class Server(Process):
@@ -14,6 +15,8 @@ class Server(Process):
 
         self.daemon = True
         self.name = name
+
+        setproctitle.setproctitle('EE:' + name)
 
         self.engine = websocket_server.WebsocketServer(port=port, host='0.0.0.0')  # inaddr_any
 

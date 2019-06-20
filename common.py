@@ -29,6 +29,14 @@ class Constants(object):
             D = 2,
             E = 3
 
+    class SQLite(object):
+
+        ymdFormat = '%Y-%m-%d'
+        hmsFormat = '%H:%M:%S.%f'
+        tsFormat = '%s %s' % (ymdFormat, hmsFormat)
+
+        full = 2048
+
     class AIS(object):
 
         class AIStype(IntEnum):

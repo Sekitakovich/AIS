@@ -8,26 +8,31 @@ import json
 import pathlib
 import sqlite3
 from queue import Empty
+import setproctitle
+
+from common import Constants
 
 
 class Archive(Process):
 
-    def __init__(self, *, qp: MPQueue):
+    def __init__(self, *, qp: MPQueue, name: str = 'Archiver'):
 
         super().__init__()
 
         self.daemon = True
-        self.name = 'Archiver'
+        self.name = name
+
+        setproctitle.setproctitle('EE:'+name)
 
         self.qp = qp
         self.counter = 0
         self.current = ''
-        self.full = 1000
+        self.full = Constants.SQLite.full
         self.buffer = []
 
-        self.ymdFormat = '%Y-%m-%d'
-        self.hmsFormat = '%H:%M:%S.%f'
-        self.tsFormat = '%s %s' % (self.ymdFormat, self.hmsFormat)
+        self.ymdFormat = Constants.SQLite.ymdFormat
+        self.hmsFormat = Constants.SQLite.hmsFormat
+        self.tsFormat = Constants.SQLite.tsFormat
 
         self.folder = 'Archives'
         path = pathlib.Path(self.folder)
@@ -43,17 +48,11 @@ class Archive(Process):
             self.logger.debug(msg='closing session with commit %d records' % self.counter)
             self.commit()
 
-    def buildUP(self, *, at: dt, nmea: str):
-        return json.dumps({
-            'ymd': at.strftime(self.ymdFormat),
-            'hms': at.strftime(self.hmsFormat),
-            'nmea': nmea,
-        })
-
     def commit(self):
 
         dbname = '%s/%s.db' % (self.folder, self.current)
 
+        self.logger.debug(msg='Commit %s %d records' % (dbname, len(self.buffer)))
         # size = len(self.drawer)
         # self.logger.debug(msg='commit %d records' % size)
 

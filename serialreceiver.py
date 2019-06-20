@@ -3,6 +3,7 @@ import logging
 from multiprocessing import Process
 from multiprocessing import Queue
 import serial
+import setproctitle
 
 from nmea import Inspector
 
@@ -15,6 +16,8 @@ class Receiver(Process):
 
         self.daemon = True
         self.name = name
+
+        setproctitle.setproctitle('EE'+name)
 
         self.ready = True
 

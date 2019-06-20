@@ -1,7 +1,8 @@
 import logging
 from queue import Queue as ThreadQueue
-from multiprocessing import Queue as MPQueue
+from multiprocessing import Queue as MPQueue, current_process
 from typing import Dict, List
+import setproctitle
 
 from session import Session
 from serialreceiver import Receiver
@@ -9,6 +10,7 @@ from webserver import Server as WebServer
 from wsserver import Server as WSServer
 from common import Constants
 from udplistner import Receiver as UDPListner
+from archive import Archive
 
 
 if __name__ == '__main__':
@@ -24,6 +26,7 @@ if __name__ == '__main__':
 
     mpqueue = MPQueue()  # queue for multiprocessing
     threadqueue = ThreadQueue()  # queue for threading
+    aqueue = MPQueue()  # for archiver
 
     ws = WSServer(port=Constants.wsport)
     ws.start()
@@ -32,11 +35,11 @@ if __name__ == '__main__':
     wd.start()
 
     serialReceiver: Dict[str, dict] = {
-        'GPS': {
+        'sGPS': {
             'port': '/dev/ttyACM0',
             'baud': 9600,
         },
-        'AIS': {
+        'sAIS': {
             'port': '/dev/ttyUSB0',
             'baud': 38400,
         },
@@ -47,11 +50,11 @@ if __name__ == '__main__':
             receiver.start()
 
     udpReceiver: Dict[str, dict] = {
-        'GPS': {
+        'uGPS': {
             'port': 60001,
             'ipv4': '239.192.0.1',
         },
-        'AIS': {
+        'uAIS': {
             'port': 60008,
             'ipv4': '239.192.0.8',
         },
@@ -60,8 +63,14 @@ if __name__ == '__main__':
         receiver = UDPListner(mailpost=mpqueue, port=v['port'], ipv4=v['ipv4'], name=k)
         receiver.start()
 
-    session = Session(entrance=threadqueue)
+    archiver = Archive(qp=aqueue)
+    archiver.start()
+
+    session = Session(entrance=threadqueue, aq=aqueue)
     session.start()
+
+    # setproctitle.setproctitle(current_process().name)
+    setproctitle.setproctitle('EE:Main')
 
     while True:
         sentence = mpqueue.get()
